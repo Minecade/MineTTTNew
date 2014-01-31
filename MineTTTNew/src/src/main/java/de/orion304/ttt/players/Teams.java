@@ -1,4 +1,4 @@
-package src.main.java.de.orion304.ttt.main;
+package src.main.java.de.orion304.ttt.players;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,16 +9,10 @@ import java.util.Set;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
 
+import src.main.java.de.orion304.ttt.main.MineTTT;
+import src.main.java.de.orion304.ttt.main.Tools;
+
 public class Teams {
-
-	// Enum which contains the values for distinguishing between the teams. None
-	// should only be used on players who are not involved in the game - most
-	// likely players who joined after the game starts.
-	public static enum Team {
-
-		INNOCENT, DETECTIVE, TRAITOR, NONE;
-
-	}
 
 	// Where we store player names and their corresponding team.
 	private Set<String> traitors = new HashSet<>();
@@ -31,13 +25,13 @@ public class Teams {
 	private static final double percentDetectives = .125;
 
 	// Instance variables for later processes.
-	private MineTTTNew plugin;
+	private MineTTT plugin;
 	private Server server;
 	private Random random;
 
 	// Constructor. Creates an object which handles players, their teams, and
 	// their initiliazation of teams.
-	public Teams(MineTTTNew instance) {
+	public Teams(MineTTT instance) {
 		plugin = instance;
 		server = plugin.server;
 		random = new Random();
@@ -52,8 +46,18 @@ public class Teams {
 
 		int numberOfPlayers = players.size();
 
+		if (numberOfPlayers < 3) {
+			Tools.verbose("There are not enough players to begin the game!");
+			return;
+		}
+
 		int numberOfTraitors = (int) (percentTraitors * numberOfPlayers);
 		int numberOfDetectives = (int) (percentDetectives * numberOfPlayers);
+
+		if (numberOfTraitors < 1)
+			numberOfTraitors = 1;
+		if (numberOfDetectives < 1)
+			numberOfDetectives = 1;
 
 		int traitorCount = 0, detectiveCount = 0;
 
@@ -61,7 +65,7 @@ public class Teams {
 			int i = random.nextInt(players.size());
 			Player player = players.get(i);
 			players.remove(i);
-			setTeam(player, Team.TRAITOR);
+			setTeam(player, PlayerTeam.TRAITOR);
 			traitorCount++;
 		}
 
@@ -69,12 +73,12 @@ public class Teams {
 			int i = random.nextInt(players.size());
 			Player player = players.get(i);
 			players.remove(i);
-			setTeam(player, Team.DETECTIVE);
+			setTeam(player, PlayerTeam.DETECTIVE);
 			detectiveCount++;
 		}
 
 		for (Player player : players) {
-			setTeam(player, Team.INNOCENT);
+			setTeam(player, PlayerTeam.INNOCENT);
 		}
 
 	}
@@ -82,13 +86,13 @@ public class Teams {
 	// It is more efficient to store players by their name instead of by their
 	// player object, but is more useful in many situations to interact with
 	// their player objects. This method does the redirection for you.
-	public void setTeam(Player player, Team team) {
+	public void setTeam(Player player, PlayerTeam team) {
 		setTeam(player.getName(), team);
 	}
 
 	// Sets the player to a specific team. To be certain that no player is ever
 	// on more than one team, it also removes them from the remaining teams.
-	public void setTeam(String playername, Team team) {
+	public void setTeam(String playername, PlayerTeam team) {
 		switch (team) {
 		case TRAITOR:
 			detectives.remove(playername);
@@ -114,19 +118,19 @@ public class Teams {
 	}
 
 	// Again a simple overload.
-	public Team getTeam(Player player) {
+	public PlayerTeam getTeam(Player player) {
 		return getTeam(player.getName());
 	}
 
 	// Returns the team of the player. If the player is on no team, return NONE.
-	public Team getTeam(String playername) {
+	public PlayerTeam getTeam(String playername) {
 		if (traitors.contains(playername))
-			return Team.TRAITOR;
+			return PlayerTeam.TRAITOR;
 		if (detectives.contains(playername))
-			return Team.DETECTIVE;
+			return PlayerTeam.DETECTIVE;
 		if (innocents.contains(playername))
-			return Team.INNOCENT;
-		return Team.NONE;
+			return PlayerTeam.INNOCENT;
+		return PlayerTeam.NONE;
 	}
 
 }
