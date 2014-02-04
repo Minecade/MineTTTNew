@@ -2,12 +2,13 @@ package src.main.java.de.orion304.ttt.players;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Random;
-import java.util.Set;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import src.main.java.de.orion304.ttt.main.MineTTT;
 import src.main.java.de.orion304.ttt.main.Tools;
@@ -15,9 +16,9 @@ import src.main.java.de.orion304.ttt.main.Tools;
 public class Teams {
 
 	// Where we store player names and their corresponding team.
-	private Set<String> traitors = new HashSet<>();
-	private Set<String> detectives = new HashSet<>();
-	private Set<String> innocents = new HashSet<>();
+	// private Set<String> traitors = new HashSet<>();
+	// private Set<String> detectives = new HashSet<>();
+	// private Set<String> innocents = new HashSet<>();
 
 	// The percent of total players who are traitors, and the percent who are
 	// detectives. The remaining will be innocents.
@@ -33,22 +34,22 @@ public class Teams {
 	// their initiliazation of teams.
 	public Teams(MineTTT instance) {
 		plugin = instance;
-		server = plugin.server;
+		server = Bukkit.getServer();
 		random = new Random();
 	}
 
 	// Method which randomly initializes teams, making sure that the proper
 	// number of detectives and traitors are filled, then making the remaining
 	// online players innocents.
-	public void initializeTeams() {
+	public boolean initializeTeams() {
 		ArrayList<Player> players = new ArrayList<Player>(Arrays.asList(server
 				.getOnlinePlayers()));
 
 		int numberOfPlayers = players.size();
 
-		if (numberOfPlayers < 3) {
+		if (numberOfPlayers < 2) {
 			Tools.verbose("There are not enough players to begin the game!");
-			return;
+			return false;
 		}
 
 		int numberOfTraitors = (int) (percentTraitors * numberOfPlayers);
@@ -74,6 +75,8 @@ public class Teams {
 			Player player = players.get(i);
 			players.remove(i);
 			setTeam(player, PlayerTeam.DETECTIVE);
+			player.getInventory()
+					.setItem(8, new ItemStack(Material.COMPASS, 1));
 			detectiveCount++;
 		}
 
@@ -81,56 +84,76 @@ public class Teams {
 			setTeam(player, PlayerTeam.INNOCENT);
 		}
 
+		TTTPlayer.registerAllScoreboards();
+		return true;
+
 	}
 
 	// It is more efficient to store players by their name instead of by their
 	// player object, but is more useful in many situations to interact with
 	// their player objects. This method does the redirection for you.
 	public void setTeam(Player player, PlayerTeam team) {
-		setTeam(player.getName(), team);
+		TTTPlayer.getTTTPlayer(player).setTeam(team);
+		// setTeam(player.getName(), team);
 	}
 
 	// Sets the player to a specific team. To be certain that no player is ever
 	// on more than one team, it also removes them from the remaining teams.
-	public void setTeam(String playername, PlayerTeam team) {
-		switch (team) {
-		case TRAITOR:
-			detectives.remove(playername);
-			innocents.remove(playername);
-			traitors.add(playername);
-			break;
-		case INNOCENT:
-			detectives.remove(playername);
-			innocents.add(playername);
-			traitors.remove(playername);
-			break;
-		case DETECTIVE:
-			detectives.add(playername);
-			innocents.remove(playername);
-			traitors.remove(playername);
-			break;
-		case NONE:
-			detectives.remove(playername);
-			innocents.remove(playername);
-			traitors.remove(playername);
-			break;
-		}
-	}
+	// public void setTeam(String playername, PlayerTeam team) {
+	// switch (team) {
+	// case TRAITOR:
+	// detectives.remove(playername);
+	// innocents.remove(playername);
+	// traitors.add(playername);
+	// break;
+	// case INNOCENT:
+	// detectives.remove(playername);
+	// innocents.add(playername);
+	// traitors.remove(playername);
+	// break;
+	// case DETECTIVE:
+	// detectives.add(playername);
+	// innocents.remove(playername);
+	// traitors.remove(playername);
+	// break;
+	// case NONE:
+	// detectives.remove(playername);
+	// innocents.remove(playername);
+	// traitors.remove(playername);
+	// break;
+	// }
+	// }
 
 	// Again a simple overload.
-	public PlayerTeam getTeam(Player player) {
-		return getTeam(player.getName());
-	}
+	// public PlayerTeam getTeam(Player player) {
+	// return getTeam(player.getName());
+	// }
 
 	// Returns the team of the player. If the player is on no team, return NONE.
-	public PlayerTeam getTeam(String playername) {
-		if (traitors.contains(playername))
-			return PlayerTeam.TRAITOR;
-		if (detectives.contains(playername))
-			return PlayerTeam.DETECTIVE;
-		if (innocents.contains(playername))
-			return PlayerTeam.INNOCENT;
-		return PlayerTeam.NONE;
+	// public PlayerTeam getTeam(String playername) {
+	// if (traitors.contains(playername))
+	// return PlayerTeam.TRAITOR;
+	// if (detectives.contains(playername))
+	// return PlayerTeam.DETECTIVE;
+	// if (innocents.contains(playername))
+	// return PlayerTeam.INNOCENT;
+	// return PlayerTeam.NONE;
+	// }
+
+	public boolean isGameOver() {
+		if (TTTPlayer.getNumberOfDetectives() == 0
+				&& TTTPlayer.getNumberOfInnocents() == 0) {
+			return true;
+		}
+
+		if (TTTPlayer.getNumberOfTraitors() == 0) {
+			return true;
+		}
+		// if (detectives.isEmpty() && innocents.isEmpty())
+		// return true;
+		// if (traitors.isEmpty())
+		// return true;
+		return false;
 	}
 
 }

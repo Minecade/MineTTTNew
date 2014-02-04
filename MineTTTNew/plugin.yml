@@ -1,3 +1,46 @@
 name: MineTTT
-main: src.main.java.de.orion304.ttt.main
+main: src.main.java.de.orion304.ttt.main.MineTTT
 version: 0.0.1
+commands:
+    setarenalocation:
+        description: Sets the location of the arena.
+        usage: setarenalocation [world] [x] [y] [z]
+    setlobbylocation:
+        description: Sets the location of the lobby.
+        usage: setlobbylocation [world] [x] [y] [z]
+    gotoarena:
+        description: Teleports the player(s) to the arena.
+        usage: gotoarena [player1] [player2] [player3] ...
+    gotolobby:
+        description: Teleports the player(s) to the lobby.
+        usage: gotolobby [player1] [player2] [player3] ...
+    forcestart:
+        description: Forces the game to begin, regardless of the number of players.
+        usage: forcestart
+    forceend:
+        description: Forces the game to end.
+        usage: forceend
+    getstatus:
+        description: Gets the status of the minigame.
+        usage: getstatus
+    spectate:
+        description: Choose to spectate instead of play the game.
+        usage: spectate
+        
+permissions:
+    minettt.setarenaloction:
+        default: op
+    minettt.setlobbylocation:
+        default: op
+    minettt.gotoarena:
+        default: op
+    minettt.gotolobby:
+        default: op
+    minettt.forcestart:
+        default: op
+    minettt.forceend:
+        default: op
+    minettt.getstatus:
+        default: true
+    minettt.spectate:
+        default: true
