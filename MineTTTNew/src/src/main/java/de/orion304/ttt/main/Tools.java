@@ -1,6 +1,9 @@
 package src.main.java.de.orion304.ttt.main;
 
+import java.util.Arrays;
+
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -10,6 +13,11 @@ import org.bukkit.util.Vector;
 import src.main.java.de.orion304.ttt.players.DeathLocation;
 
 public class Tools {
+
+	private static final Integer[] nonOpaque = { 0, 6, 8, 9, 10, 11, 27, 28,
+			30, 31, 32, 37, 38, 39, 40, 50, 51, 55, 59, 66, 68, 69, 70, 72, 75,
+			76, 77, 78, 83, 90, 93, 94, 104, 105, 106, 111, 115, 119, 127, 131,
+			132 };
 
 	private static final BlockFace[] axis = { BlockFace.NORTH, BlockFace.EAST,
 			BlockFace.SOUTH, BlockFace.WEST };
@@ -117,6 +125,37 @@ public class Tools {
 			}
 		}
 		return target;
+	}
+
+	public static Block getFloor(Location location, int maxdistance) {
+		Block startblock = location.getBlock();
+		Block solidblock = null;
+		boolean air = false;
+		for (int i = -maxdistance; i < maxdistance; i++) {
+			Block block = startblock.getRelative(BlockFace.UP, i);
+			if (isTransparent(block)) {
+				if (solidblock != null) {
+					if (air) {
+						return block.getRelative(BlockFace.DOWN);
+					}
+					air = true;
+				} else {
+					air = false;
+					solidblock = block;
+				}
+			} else {
+				solidblock = block;
+			}
+		}
+		return null;
+	}
+
+	public static boolean isSolid(Block block) {
+		return !isTransparent(block);
+	}
+
+	public static boolean isTransparent(Block block) {
+		return Arrays.asList(nonOpaque).contains(block.getTypeId());
 	}
 
 	/**

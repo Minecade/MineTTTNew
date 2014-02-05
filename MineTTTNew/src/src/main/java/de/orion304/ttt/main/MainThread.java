@@ -9,6 +9,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Server;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -24,7 +25,7 @@ public class MainThread implements Runnable {
 
 	private static final long preptime = 15000L;
 
-	public static final ChatColor traitorColor = ChatColor.GOLD,
+	public static final ChatColor traitorColor = ChatColor.RED,
 			detectiveColor = ChatColor.AQUA, innocentColor = ChatColor.WHITE,
 			spectatorColor = ChatColor.GRAY;
 
@@ -105,6 +106,7 @@ public class MainThread implements Runnable {
 					player.setGameMode(GameMode.CREATIVE);
 					player.closeInventory();
 					player.getInventory().clear();
+					Tplayer.resetPlayer();
 					TTTPlayer.allRegisterPlayer(Tplayer);
 					Tplayer.registerAllPlayers();
 					player.sendMessage(spectatorColor
@@ -243,13 +245,32 @@ public class MainThread implements Runnable {
 	}
 
 	private void teleportPlayer(Player player, Location location) {
-		double r = random.nextDouble() * radius;
-		double theta = random.nextDouble() * 2 * Math.PI;
+		int numberOfTries = 5;
+		int i = 0;
+		Location loc;
+		while (true) {
+			double r = random.nextDouble() * radius;
+			double theta = random.nextDouble() * 2 * Math.PI;
 
-		double x = r * Math.cos(theta);
-		double y = r * Math.sin(theta);
+			double x = r * Math.cos(theta);
+			double y = r * Math.sin(theta);
 
-		player.teleport(location.clone().add(x, 0, y));
+			loc = location.clone().add(x, 0, y);
+
+			Block block = Tools.getFloor(loc, (int) radius);
+			if (block == null) {
+				if (i < numberOfTries) {
+					i++;
+				} else {
+					break;
+				}
+			} else {
+				loc = block.getLocation().add(.5, 0, .5);
+				break;
+			}
+
+		}
+		player.teleport(loc);
 
 	}
 

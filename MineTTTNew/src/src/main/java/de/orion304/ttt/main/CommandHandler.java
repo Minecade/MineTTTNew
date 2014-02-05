@@ -4,13 +4,7 @@ import java.util.ArrayList;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.SkullType;
 import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Skull;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -66,15 +60,6 @@ public class CommandHandler {
 	}
 
 	private void getStatus(Player player, String[] args) {
-		Block block = player.getEyeLocation().getBlock();
-		new TempBlock(block, Material.SKULL);
-		BlockState state = block.getState();
-		Skull skull = (Skull) state;
-		skull.setOwner(player.getDisplayName());
-		skull.setRotation(BlockFace.SOUTH_EAST);
-		skull.setSkullType(SkullType.PLAYER);
-
-		skull.update();
 		sendMessage(player, "The status of MineTTT is: "
 				+ plugin.thread.getGameStatus().toString());
 	}

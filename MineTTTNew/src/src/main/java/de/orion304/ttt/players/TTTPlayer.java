@@ -49,11 +49,14 @@ public class TTTPlayer {
 			standardInnocentLabel = Bukkit
 					.getOfflinePlayer(MainThread.innocentColor + "Innocents:");
 
+	private static final String bold = ChatColor.BOLD.toString();
+
 	private static final OfflinePlayer boldDetectiveLabel = Bukkit
-			.getOfflinePlayer(MainThread.detectiveColor + "Detectives:"),
+			.getOfflinePlayer(MainThread.detectiveColor + bold + "Detectives:"),
 			boldTraitorLabel = Bukkit.getOfflinePlayer(MainThread.traitorColor
-					+ "Traitors:"), boldInnocentLabel = Bukkit
-					.getOfflinePlayer(MainThread.innocentColor + "Innocents:");
+					+ bold + "Traitors:"), boldInnocentLabel = Bukkit
+					.getOfflinePlayer(MainThread.innocentColor + bold
+							+ "Innocents:");
 
 	private static final OfflinePlayer karmaLabel = Bukkit
 			.getOfflinePlayer(ChatColor.GREEN + "Karma");
@@ -208,17 +211,22 @@ public class TTTPlayer {
 			Team detectives = scoreboard.registerNewTeam("Detectives");
 			teams.put(PlayerTeam.DETECTIVE, detectives);
 			detectives.setPrefix(MainThread.detectiveColor.toString());
+			detectives.setSuffix(" (Detective)");
 
 			Team traitors = scoreboard.registerNewTeam("Traitors");
 			teams.put(PlayerTeam.TRAITOR, traitors);
 			traitors.setPrefix(MainThread.traitorColor.toString());
+			traitors.setSuffix(" (Traitor)");
 
 			Team innocents = scoreboard.registerNewTeam("Innocents");
 			teams.put(PlayerTeam.INNOCENT, innocents);
+			innocents.setPrefix(MainThread.innocentColor.toString());
+			innocents.setSuffix(" (Innocent)");
 
 			Team spectators = scoreboard.registerNewTeam("Spectators");
 			teams.put(PlayerTeam.NONE, spectators);
 			spectators.setPrefix(MainThread.spectatorColor.toString());
+			spectators.setSuffix(" (Spectator)");
 
 			player.setScoreboard(scoreboard);
 
@@ -288,15 +296,22 @@ public class TTTPlayer {
 		if (p == null || me == null)
 			return;
 
+		// Tools.verbose("Registering " + player.playerName + " (team " +
+		// hisTeam
+		// + ") for " + playerName + " (team " + team + ")");
+
 		if (Arrays.asList(allowedTeams).contains(hisTeam)) {
 			// Tools.verbose("Registering " + player.playerName + "(Team: "
 			// + hisTeam + ") for " + playerName);
-			teams.get(hisTeam).addPlayer(p);
-			me.showPlayer(p);
+			Team hisScoreboardTeam = teams.get(hisTeam);
+			hisScoreboardTeam.addPlayer(p);
+			// Tools.verbose("Registration successful");
 		}
 
 		if (hisTeam == PlayerTeam.NONE && team != PlayerTeam.NONE) {
 			me.hidePlayer(p);
+		} else {
+			me.showPlayer(p);
 		}
 
 	}
@@ -327,7 +342,7 @@ public class TTTPlayer {
 		team = PlayerTeam.NONE;
 		recentDamager = null;
 		trackedPlayer = null;
-		teams = new HashMap<>();
+		teams.clear();
 		hasVoted = false;
 		resetScoreboard();
 	}
@@ -551,8 +566,8 @@ public class TTTPlayer {
 			Tplayer.installVoteTools();
 			break;
 		case GAME_RUNNING:
-			Tplayer.showGameScoreboard();
 			allRegisterPlayer(player);
+			Tplayer.showGameScoreboard();
 			break;
 		}
 	}
@@ -561,6 +576,7 @@ public class TTTPlayer {
 		TTTPlayer Tplayer = getTTTPlayer(player);
 		Tplayer.team = PlayerTeam.NONE;
 		player.setGameMode(GameMode.ADVENTURE);
+		Tplayer.resetPlayer();
 		if (plugin.teamHandler.isGameOver()) {
 			plugin.thread.endGame(false);
 		} else {
@@ -659,6 +675,7 @@ public class TTTPlayer {
 			votes.put(key, info);
 			showAllPrepScoreboards();
 			inventory.clear();
+			player.updateInventory();
 			player.sendMessage(ChatColor.GREEN + "You have voted for the "
 					+ key + " map.");
 			return true;
@@ -714,6 +731,7 @@ public class TTTPlayer {
 		for (int i = 0; i < items.size(); i++) {
 			inventory.setItem(i, items.get(i));
 		}
+		p.updateInventory();
 	}
 
 	private void installVoteTools() {
@@ -894,6 +912,7 @@ public class TTTPlayer {
 			inventory.setItem(6, suspectItem);
 			inventory.setItem(7, claimItem);
 		}
+		player.updateInventory();
 	}
 
 }

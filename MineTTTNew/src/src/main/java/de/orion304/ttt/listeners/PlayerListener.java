@@ -201,7 +201,9 @@ public class PlayerListener implements Listener {
 			if (damagerTeam == PlayerTeam.TRAITOR) {
 				new DeathLocation(player.getName(), recentDamager.getName(),
 						player.getLocation());
-				Block block = player.getEyeLocation().getBlock();
+				Block block = Tools.getFloor(player.getEyeLocation(), 4);
+				if (block == null)
+					block = player.getEyeLocation().getBlock();
 				new TempBlock(block, Material.SKULL);
 				BlockState state = block.getState();
 				Skull skull = (Skull) state;
@@ -262,6 +264,7 @@ public class PlayerListener implements Listener {
 		for (int i = 0; i < drops.size(); i++) {
 
 		}
+		drops.clear();
 
 		TTTPlayer.handleDeath(player);
 

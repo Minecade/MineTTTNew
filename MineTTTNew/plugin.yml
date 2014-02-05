@@ -32,7 +32,7 @@ permissions:
         default: op
     minettt.setlobbylocation:
         default: op
-    minettt.gotoarena:
+    minettt.goto:
         default: op
     minettt.gotolobby:
         default: op
