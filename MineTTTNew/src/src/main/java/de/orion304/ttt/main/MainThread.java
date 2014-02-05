@@ -102,7 +102,8 @@ public class MainThread implements Runnable {
 				continue;
 			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
 			if (Tplayer.getTeam() == PlayerTeam.NONE) {
-				if (player.getGameMode() != GameMode.CREATIVE) {
+				if (player.getGameMode() != GameMode.CREATIVE
+						&& Tplayer.canSpectate()) {
 					player.setGameMode(GameMode.CREATIVE);
 					player.closeInventory();
 					player.getInventory().clear();
@@ -138,8 +139,10 @@ public class MainThread implements Runnable {
 			endMessage += " The detectives were victorious!";
 		}
 
-		if (forced)
+		if (forced) {
 			endMessage = ChatColor.RED + "The game was ended by an admin.";
+		}
+		TTTPlayer.distributeCoinsToAll();
 		TempBlock.revertAll();
 		clearDrops();
 		clearInventories();

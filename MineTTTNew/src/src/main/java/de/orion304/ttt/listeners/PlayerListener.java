@@ -72,9 +72,14 @@ public class PlayerListener implements Listener {
 	@EventHandler
 	public void onPlayerLogin(PlayerLoginEvent event) {
 		String name = event.getPlayer().getName();
+		if (plugin.minecade.isPlayerBanned(name)) {
+			event.disallow(Result.KICK_BANNED,
+					"You have been banned from all Minecade servers.");
+			return;
+		}
 		if (TTTPlayer.isBanned(name)) {
 			event.disallow(Result.KICK_BANNED,
-					"Your karma dropped too low, you are banned for 2 minutes!");
+					"Your karma dropped too low, you are banned for 5 minutes!");
 		}
 	}
 

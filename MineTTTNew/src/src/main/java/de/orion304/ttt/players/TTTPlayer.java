@@ -91,7 +91,7 @@ public class TTTPlayer {
 	private int karma = 1000;
 	private long banDate = 0, banLength = 0;
 	private transient boolean hasVoted = false;
-	private MinecadeAccount account;
+	public MinecadeAccount account;
 	private ConcurrentHashMap<String, Long> calls = new ConcurrentHashMap<>();
 
 	public TTTPlayer(String name, int karma, long banDate, long banLength) {
@@ -740,6 +740,8 @@ public class TTTPlayer {
 		player.setGameMode(GameMode.ADVENTURE);
 		TTTPlayer Tplayer = getTTTPlayer(player);
 		Tplayer.team = PlayerTeam.NONE;
+		if (plugin.thread.isGameRunning())
+			Tplayer.distributeCoins();
 		if (plugin.teamHandler.isGameOver()) {
 			plugin.thread.endGame(false);
 		} else {
@@ -967,6 +969,36 @@ public class TTTPlayer {
 			inventory.setItem(7, claimItem);
 		}
 		player.updateInventory();
+	}
+
+	public boolean canSpectate() {
+		if (account.isVip() || account.isAdmin() || account.isCm()
+				|| account.isGm())
+			return true;
+		return false;
+	}
+
+	public void distributeCoins() {
+		Player player = getPlayer();
+		if (player == null)
+			return;
+		long coins = 0;
+		for (ItemStack item : player.getInventory().getContents()) {
+			if (item.getType() == Material.GOLD_NUGGET) {
+				coins += item.getAmount();
+			}
+		}
+		plugin.minecade.addCoins(playerName, coins);
+		loadMinecadeAccount();
+		refreshScoreboard();
+	}
+
+	public static void distributeCoinsToAll() {
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = getTTTPlayer(player);
+			Tplayer.distributeCoins();
+		}
+
 	}
 
 }
