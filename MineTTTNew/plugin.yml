@@ -8,9 +8,9 @@ commands:
     setlobbylocation:
         description: Sets the location of the lobby.
         usage: setlobbylocation [world] [x] [y] [z]
-    gotoarena:
-        description: Teleports the player(s) to the arena.
-        usage: gotoarena [player1] [player2] [player3] ...
+    goto:
+        description: Teleports the player(s) to the specified arena.
+        usage: goto <arenaname> [player1] [player2] [player3] ...
     gotolobby:
         description: Teleports the player(s) to the lobby.
         usage: gotolobby [player1] [player2] [player3] ...
@@ -26,6 +26,12 @@ commands:
     spectate:
         description: Choose to spectate instead of play the game.
         usage: spectate
+    signin:
+        description: Sign in with your Minecade account.
+        usage: signin <username> <password>
+    update:
+        description: Asks the server to update your Minecade information (number of coins, VIP status, etc)
+        usage: update
         
 permissions:
     minettt.setarenaloction:
@@ -43,4 +49,8 @@ permissions:
     minettt.getstatus:
         default: true
     minettt.spectate:
+        default: op
+    minettt.signin:
+        default: true
+    minettt.update:
         default: true

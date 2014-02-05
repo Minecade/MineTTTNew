@@ -11,6 +11,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 
 import src.main.java.de.orion304.ttt.listeners.PlayerListener;
 import src.main.java.de.orion304.ttt.listeners.WorldListener;
+import src.main.java.de.orion304.ttt.minecade.MinecadePersistence;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
 import src.main.java.de.orion304.ttt.players.Teams;
 
@@ -26,6 +27,7 @@ public class MineTTT extends JavaPlugin {
 	public BukkitScheduler scheduler;
 	private CommandHandler commandHandler;
 	public FileManager fileManager;
+	public MinecadePersistence minecade;
 
 	private PluginManager manager;
 
@@ -39,6 +41,19 @@ public class MineTTT extends JavaPlugin {
 		commandHandler = new CommandHandler(this);
 		fileManager = new FileManager(this);
 		thread = new MainThread(this);
+		String host = "localhost";
+		int port = 3306;
+		String database = "Minecade";
+		String username = "root";
+		String password = "fagba11z";
+
+		try {
+			minecade = new MinecadePersistence(this, host, port, database,
+					username, password);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		TTTPlayer.setPlugin(this);
 
 		scheduler = server.getScheduler();
