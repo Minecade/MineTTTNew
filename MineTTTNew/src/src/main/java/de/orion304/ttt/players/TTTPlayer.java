@@ -64,7 +64,7 @@ public class TTTPlayer {
 	private static final OfflinePlayer butterCoinsLabel = Bukkit
 			.getOfflinePlayer(ChatColor.GOLD + "Butter Coins");
 
-	private static final String trustLabel = "Proclaim your trust",
+	public static final String trustLabel = "Proclaim your trust",
 			suspectLabel = "Express your suspiscion",
 			claimLabel = "Call out a traitor";
 

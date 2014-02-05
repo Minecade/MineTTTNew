@@ -1,6 +1,5 @@
 package src.main.java.de.orion304.ttt.listeners;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.server.v1_7_R1.EnumClientCommand;
@@ -45,6 +44,9 @@ import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
 
 public class PlayerListener implements Listener {
+
+	private static final ItemStack nugget = new ItemStack(Material.GOLD_NUGGET,
+			1);
 
 	MineTTT plugin;
 	ChatManager chatManager;
@@ -234,11 +236,13 @@ public class PlayerListener implements Listener {
 			if (playerTeam != PlayerTeam.TRAITOR
 					|| playerTeam != PlayerTeam.NONE) {
 				Tplayer.addKarma();
+				giveNugget(player);
 			}
 
 			if (playerTeam == PlayerTeam.TRAITOR
 					&& damagerTeam != PlayerTeam.TRAITOR) {
 				TrecentDamager.addKarma();
+				giveNugget(player);
 			}
 
 			if (playerTeam == PlayerTeam.TRAITOR
@@ -273,14 +277,32 @@ public class PlayerListener implements Listener {
 		event.setDroppedExp(0);
 
 		List<ItemStack> drops = event.getDrops();
-		ArrayList<ItemStack> toRemove = new ArrayList<>();
-		for (int i = 0; i < drops.size(); i++) {
-
-		}
+		// ArrayList<ItemStack> toRemove = new ArrayList<>();
+		// for (int i = 0; i < drops.size(); i++) {
+		// ItemStack item = drops.get(i);
+		// if (item == null)
+		// continue;
+		// if (item.getItemMeta() == null)
+		// continue;
+		// if (item.getType() == Material.GOLD_NUGGET)
+		// toRemove.add(item);
+		// if (item.getType() == Material.COMPASS)
+		// toRemove.add(item);
+		// String name = item.getItemMeta().getDisplayName();
+		// if (name.equals(TTTPlayer.claimLabel)
+		// || name.equals(TTTPlayer.suspectLabel)
+		// || name.equals(TTTPlayer.trustLabel))
+		// toRemove.add(item);
+		// }
+		// drops.removeAll(toRemove);
 		drops.clear();
 
 		TTTPlayer.handleDeath(player);
 
+	}
+
+	private void giveNugget(Player player) {
+		player.getInventory().addItem(nugget);
 	}
 
 	public void onPlayerQuit(PlayerQuitEvent event) {
