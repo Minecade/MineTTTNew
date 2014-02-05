@@ -62,7 +62,7 @@ public class TTTPlayer {
 	private static final OfflinePlayer karmaLabel = Bukkit
 			.getOfflinePlayer(ChatColor.GREEN + "Karma");
 	private static final OfflinePlayer butterCoinsLabel = Bukkit
-			.getOfflinePlayer(ChatColor.GOLD + "Butter Coins");
+			.getOfflinePlayer(ChatColor.GOLD + "Coins");
 
 	public static final String trustLabel = "Proclaim your trust",
 			suspectLabel = "Express your suspiscion",
@@ -146,6 +146,7 @@ public class TTTPlayer {
 	}
 
 	public void loadMinecadeAccount() {
+		Tools.verbose("Loading " + playerName + "'s account.");
 		account = plugin.minecade.getMinecadeAccount(playerName);
 		Player p = getPlayer();
 		if (p != null) {
@@ -512,6 +513,8 @@ public class TTTPlayer {
 		Score butterCoinScore = objective.getScore(butterCoinsLabel);
 
 		karmaScore.setScore(karma);
+		int coins = (int) account.getButterCoins();
+		Tools.verbose(playerName + " has " + coins + " coins.");
 		butterCoinScore.setScore((int) account.getButterCoins());
 	}
 
@@ -588,6 +591,7 @@ public class TTTPlayer {
 	}
 
 	public void refreshScoreboard() {
+		Tools.verbose("Refreshing " + playerName + "'s scoreboard");
 		GameState state = plugin.thread.getGameStatus();
 		switch (state) {
 		case OFF:
@@ -983,11 +987,17 @@ public class TTTPlayer {
 		if (player == null)
 			return;
 		long coins = 0;
+		ArrayList<ItemStack> toRemove = new ArrayList<>();
 		for (ItemStack item : player.getInventory().getContents()) {
+			if (item == null)
+				continue;
 			if (item.getType() == Material.GOLD_NUGGET) {
 				coins += item.getAmount();
+				toRemove.add(item);
 			}
 		}
+		player.getInventory().removeItem(
+				toRemove.toArray(new ItemStack[toRemove.size()]));
 		plugin.minecade.addCoins(playerName, coins);
 		loadMinecadeAccount();
 		refreshScoreboard();

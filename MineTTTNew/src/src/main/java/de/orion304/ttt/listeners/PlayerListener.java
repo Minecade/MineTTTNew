@@ -236,13 +236,13 @@ public class PlayerListener implements Listener {
 			if (playerTeam != PlayerTeam.TRAITOR
 					|| playerTeam != PlayerTeam.NONE) {
 				Tplayer.addKarma();
-				giveNugget(player);
+				giveNugget(recentDamager);
 			}
 
 			if (playerTeam == PlayerTeam.TRAITOR
 					&& damagerTeam != PlayerTeam.TRAITOR) {
 				TrecentDamager.addKarma();
-				giveNugget(player);
+				giveNugget(recentDamager);
 			}
 
 			if (playerTeam == PlayerTeam.TRAITOR
