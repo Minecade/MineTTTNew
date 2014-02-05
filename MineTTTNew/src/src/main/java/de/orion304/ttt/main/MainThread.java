@@ -23,18 +23,14 @@ import src.main.java.de.orion304.ttt.players.TTTPlayer;
 
 public class MainThread implements Runnable {
 
-	private static final long preptime = 15000L;
-
-	public static final ChatColor traitorColor = ChatColor.RED,
-			detectiveColor = ChatColor.AQUA, innocentColor = ChatColor.WHITE,
-			spectatorColor = ChatColor.GRAY;
+	private static long preptime = FileManager.preparationTime;
 
 	// Variables for use in processing
 	private MineTTT plugin;
 	private Server server;
 
 	// Initialization variables
-	private int playerThreshold = 24;
+	private int playerThreshold = FileManager.minimumNumberOfPlayers;
 	private ConcurrentHashMap<String, Location> arenaLocations = new ConcurrentHashMap<>();
 	private Location arenaLocation, lobbyLocation;
 	private double radius = 4.5;
@@ -47,6 +43,10 @@ public class MainThread implements Runnable {
 		plugin = instance;
 		server = Bukkit.getServer();
 		random = new Random();
+
+		preptime = FileManager.preparationTime;
+		lastannouncetime = (preptime - 1000) / 10000;
+		playerThreshold = FileManager.minimumNumberOfPlayers;
 
 		arenaLocations = plugin.fileManager.getArenaLocations();
 		lobbyLocation = plugin.fileManager.getLobbyLocation();
@@ -109,7 +109,7 @@ public class MainThread implements Runnable {
 					Tplayer.resetPlayer();
 					TTTPlayer.allRegisterPlayer(Tplayer);
 					Tplayer.registerAllPlayers();
-					player.sendMessage(spectatorColor
+					player.sendMessage(FileManager.spectatorColor
 							+ "You are now spectating.");
 					teleportPlayer(player, arenaLocation);
 				}
@@ -131,10 +131,10 @@ public class MainThread implements Runnable {
 
 		String endMessage = "The game has ended! ";
 		if (traitorsWon) {
-			endMessage = traitorColor + endMessage;
+			endMessage = FileManager.traitorColor + endMessage;
 			endMessage += "The traitors were victorious!";
 		} else {
-			endMessage = detectiveColor + endMessage;
+			endMessage = FileManager.detectiveColor + endMessage;
 			endMessage += " The detectives were victorious!";
 		}
 
@@ -152,6 +152,7 @@ public class MainThread implements Runnable {
 			teleportPlayer(player, lobbyLocation);
 			player.setGameMode(GameMode.ADVENTURE);
 		}
+
 	}
 
 	private void clearInventories() {
@@ -216,16 +217,19 @@ public class MainThread implements Runnable {
 
 			switch (team) {
 			case INNOCENT:
-				player.sendMessage(innocentColor + "You are an INNOCENT!");
+				player.sendMessage(FileManager.innocentColor
+						+ "You are an INNOCENT!");
 				player.showKarma();
 				break;
 			case DETECTIVE:
-				player.sendMessage(detectiveColor + "You are a DETECTIVE!");
+				player.sendMessage(FileManager.detectiveColor
+						+ "You are a DETECTIVE!");
 				player.showKarma();
 				p.getInventory().setItem(8, new ItemStack(Material.COMPASS, 1));
 				break;
 			case TRAITOR:
-				player.sendMessage(traitorColor + "You are a TRAITOR!");
+				player.sendMessage(FileManager.traitorColor
+						+ "You are a TRAITOR!");
 				player.showKarma();
 				break;
 			default:

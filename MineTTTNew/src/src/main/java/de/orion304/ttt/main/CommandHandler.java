@@ -9,6 +9,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import src.main.java.de.orion304.ttt.players.TTTPlayer;
+
 public class CommandHandler {
 
 	MineTTT plugin;
@@ -55,8 +57,23 @@ public class CommandHandler {
 		case "getstatus":
 			getStatus(player, args);
 			return true;
+		case "update":
+			update(player, args);
+			return true;
 		}
 		return false;
+	}
+
+	private void update(Player player, String[] args) {
+		if (player == null) {
+			sendMessage(player, "This command cannot be used from the console.");
+			return;
+		}
+		String username = player.getName();
+
+		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(username);
+		Tplayer.loadMinecadeAccount();
+		Tplayer.refreshScoreboard();
 	}
 
 	private void getStatus(Player player, String[] args) {

@@ -29,7 +29,7 @@ public class ChatManager {
 			PlayerTeam receiverTeam = receiver.getTeam();
 			if (senderTeam == PlayerTeam.NONE) {
 				if (receiverTeam == PlayerTeam.NONE) {
-					p.sendMessage(MainThread.spectatorColor + "<Spectator> "
+					p.sendMessage(FileManager.spectatorColor + "<Spectator> "
 							+ senderName + ChatColor.RESET + ": " + message);
 				}
 				continue;
@@ -37,13 +37,13 @@ public class ChatManager {
 
 			if (senderTeam == PlayerTeam.TRAITOR
 					&& (receiverTeam == PlayerTeam.NONE || receiverTeam == PlayerTeam.TRAITOR)) {
-				p.sendMessage(MainThread.traitorColor + senderName
+				p.sendMessage(FileManager.traitorColor + senderName
 						+ ChatColor.RESET + ": " + message);
 				continue;
 			}
 
 			if (senderTeam == PlayerTeam.DETECTIVE) {
-				p.sendMessage(MainThread.detectiveColor + senderName
+				p.sendMessage(FileManager.detectiveColor + senderName
 						+ ChatColor.RESET + ": " + message);
 				continue;
 			}

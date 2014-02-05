@@ -41,17 +41,12 @@ public class MineTTT extends JavaPlugin {
 		commandHandler = new CommandHandler(this);
 		fileManager = new FileManager(this);
 		thread = new MainThread(this);
-		String host = "localhost";
-		int port = 3306;
-		String database = "Minecade";
-		String username = "root";
-		String password = "fagba11z";
 
 		try {
-			minecade = new MinecadePersistence(this, host, port, database,
-					username, password);
+			minecade = new MinecadePersistence(this, FileManager.SQLhostname,
+					FileManager.SQLport, FileManager.SQLdatabaseName,
+					FileManager.SQLusername, FileManager.SQLpassword);
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		TTTPlayer.setPlugin(this);

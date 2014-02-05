@@ -26,10 +26,11 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import src.main.java.de.orion304.ttt.main.Action;
+import src.main.java.de.orion304.ttt.main.FileManager;
 import src.main.java.de.orion304.ttt.main.GameState;
-import src.main.java.de.orion304.ttt.main.MainThread;
 import src.main.java.de.orion304.ttt.main.MineTTT;
 import src.main.java.de.orion304.ttt.main.Tools;
+import src.main.java.de.orion304.ttt.minecade.MinecadeAccount;
 
 public class TTTPlayer {
 
@@ -37,29 +38,31 @@ public class TTTPlayer {
 
 	private static ConcurrentHashMap<String, TTTPlayer> players = new ConcurrentHashMap<>();
 
-	private static final long karmaThreshold = 200L;
-	private static final long duration = 5 * 60 * 1000L;
-	private static final long callCooldown = 10 * 1000L;
+	private static final int karmaThreshold = FileManager.karmaThreshold;
+	private static final long duration = FileManager.banDuration;
+	private static final long callCooldown = FileManager.chatItemCooldown;
 	private static Random random = new Random();
 
-	private static final OfflinePlayer standardDetectiveLabel = Bukkit
-			.getOfflinePlayer(MainThread.detectiveColor + "Detectives:"),
+	private static OfflinePlayer standardDetectiveLabel = Bukkit
+			.getOfflinePlayer(FileManager.detectiveColor + "Detectives:"),
 			standardTraitorLabel = Bukkit
-					.getOfflinePlayer(MainThread.traitorColor + "Traitors:"),
+					.getOfflinePlayer(FileManager.traitorColor + "Traitors:"),
 			standardInnocentLabel = Bukkit
-					.getOfflinePlayer(MainThread.innocentColor + "Innocents:");
+					.getOfflinePlayer(FileManager.innocentColor + "Innocents:");
 
 	private static final String bold = ChatColor.BOLD.toString();
 
-	private static final OfflinePlayer boldDetectiveLabel = Bukkit
-			.getOfflinePlayer(MainThread.detectiveColor + bold + "Detectives:"),
-			boldTraitorLabel = Bukkit.getOfflinePlayer(MainThread.traitorColor
+	private static OfflinePlayer boldDetectiveLabel = Bukkit
+			.getOfflinePlayer(FileManager.detectiveColor + bold + "Detectives:"),
+			boldTraitorLabel = Bukkit.getOfflinePlayer(FileManager.traitorColor
 					+ bold + "Traitors:"), boldInnocentLabel = Bukkit
-					.getOfflinePlayer(MainThread.innocentColor + bold
+					.getOfflinePlayer(FileManager.innocentColor + bold
 							+ "Innocents:");
 
 	private static final OfflinePlayer karmaLabel = Bukkit
 			.getOfflinePlayer(ChatColor.GREEN + "Karma");
+	private static final OfflinePlayer butterCoinsLabel = Bukkit
+			.getOfflinePlayer(ChatColor.GOLD + "Butter Coins");
 
 	private static final String trustLabel = "Proclaim your trust",
 			suspectLabel = "Express your suspiscion",
@@ -88,6 +91,7 @@ public class TTTPlayer {
 	private int karma = 1000;
 	private long banDate = 0, banLength = 0;
 	private transient boolean hasVoted = false;
+	private MinecadeAccount account;
 	private ConcurrentHashMap<String, Long> calls = new ConcurrentHashMap<>();
 
 	public TTTPlayer(String name, int karma, long banDate, long banLength) {
@@ -102,13 +106,33 @@ public class TTTPlayer {
 		players.put(playerName, this);
 	}
 
+	public static void loadColors() {
+		standardDetectiveLabel = Bukkit
+				.getOfflinePlayer(FileManager.detectiveColor + "Detectives:");
+		standardTraitorLabel = Bukkit.getOfflinePlayer(FileManager.traitorColor
+				+ "Traitors:");
+		standardInnocentLabel = Bukkit
+				.getOfflinePlayer(FileManager.innocentColor + "Innocents:");
+		boldDetectiveLabel = Bukkit.getOfflinePlayer(FileManager.detectiveColor
+				+ bold + "Detectives:");
+		boldTraitorLabel = Bukkit.getOfflinePlayer(FileManager.traitorColor
+				+ bold + "Traitors:");
+		boldInnocentLabel = Bukkit.getOfflinePlayer(FileManager.innocentColor
+				+ bold + "Innocents:");
+	}
+
 	public static TTTPlayer getTTTPlayer(Player player) {
 		if (player == null)
 			return null;
 		String name = player.getName();
-		if (players.containsKey(name))
-			return players.get(name);
-		return new TTTPlayer(name);
+		return getTTTPlayer(name);
+	}
+
+	public static TTTPlayer getTTTPlayer(String playerName) {
+		if (players.containsKey(playerName)) {
+			return players.get(playerName);
+		}
+		return new TTTPlayer(playerName);
 	}
 
 	public void sendMessage(String string) {
@@ -119,6 +143,14 @@ public class TTTPlayer {
 
 	public static Collection<TTTPlayer> getPlayers() {
 		return players.values();
+	}
+
+	public void loadMinecadeAccount() {
+		account = plugin.minecade.getMinecadeAccount(playerName);
+		Player p = getPlayer();
+		if (p != null) {
+			p.setOp(account.isAdmin());
+		}
 	}
 
 	public Player getPlayer() {
@@ -210,22 +242,22 @@ public class TTTPlayer {
 
 			Team detectives = scoreboard.registerNewTeam("Detectives");
 			teams.put(PlayerTeam.DETECTIVE, detectives);
-			detectives.setPrefix(MainThread.detectiveColor.toString());
+			detectives.setPrefix(FileManager.detectiveColor.toString());
 			detectives.setSuffix(" (Detective)");
 
 			Team traitors = scoreboard.registerNewTeam("Traitors");
 			teams.put(PlayerTeam.TRAITOR, traitors);
-			traitors.setPrefix(MainThread.traitorColor.toString());
+			traitors.setPrefix(FileManager.traitorColor.toString());
 			traitors.setSuffix(" (Traitor)");
 
 			Team innocents = scoreboard.registerNewTeam("Innocents");
 			teams.put(PlayerTeam.INNOCENT, innocents);
-			innocents.setPrefix(MainThread.innocentColor.toString());
+			innocents.setPrefix(FileManager.innocentColor.toString());
 			innocents.setSuffix(" (Innocent)");
 
 			Team spectators = scoreboard.registerNewTeam("Spectators");
 			teams.put(PlayerTeam.NONE, spectators);
-			spectators.setPrefix(MainThread.spectatorColor.toString());
+			spectators.setPrefix(FileManager.spectatorColor.toString());
 			spectators.setSuffix(" (Spectator)");
 
 			player.setScoreboard(scoreboard);
@@ -463,6 +495,7 @@ public class TTTPlayer {
 	}
 
 	private void showPreGameScoreboard() {
+		loadMinecadeAccount();
 		hookScoreboard();
 		Objective objective = scoreboard.getObjective("stats");
 		if (objective == null) {
@@ -476,8 +509,10 @@ public class TTTPlayer {
 			objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
 		Score karmaScore = objective.getScore(karmaLabel);
+		Score butterCoinScore = objective.getScore(butterCoinsLabel);
 
 		karmaScore.setScore(karma);
+		butterCoinScore.setScore((int) account.getButterCoins());
 	}
 
 	private void showPrepScoreboard(
@@ -552,9 +587,27 @@ public class TTTPlayer {
 		}
 	}
 
+	public void refreshScoreboard() {
+		GameState state = plugin.thread.getGameStatus();
+		switch (state) {
+		case OFF:
+			showPreGameScoreboard();
+			break;
+		case GAME_PREPARING:
+			showPrepScoreboard();
+			break;
+		case GAME_RUNNING:
+			showGameScoreboard();
+			break;
+		}
+	}
+
 	public static void handleJoin(Player player) {
+		if (player == null)
+			return;
 		GameState state = plugin.thread.getGameStatus();
 		TTTPlayer Tplayer = getTTTPlayer(player);
+		Tplayer.loadMinecadeAccount();
 		Tplayer.team = PlayerTeam.NONE;
 		player.setGameMode(GameMode.ADVENTURE);
 		switch (state) {
@@ -874,7 +927,7 @@ public class TTTPlayer {
 
 		if (team == PlayerTeam.NONE) {
 			if (receiverTeam == PlayerTeam.NONE) {
-				playerName = MainThread.spectatorColor + "<Spectator> "
+				playerName = FileManager.spectatorColor + "<Spectator> "
 						+ playerName + ChatColor.RESET;
 				return playerName;
 			}
@@ -882,12 +935,13 @@ public class TTTPlayer {
 
 		if (team == PlayerTeam.TRAITOR
 				&& (receiverTeam == PlayerTeam.NONE || receiverTeam == PlayerTeam.TRAITOR)) {
-			playerName = MainThread.traitorColor + playerName + ChatColor.RESET;
+			playerName = FileManager.traitorColor + playerName
+					+ ChatColor.RESET;
 			return playerName;
 		}
 
 		if (team == PlayerTeam.DETECTIVE) {
-			playerName = MainThread.detectiveColor + playerName
+			playerName = FileManager.detectiveColor + playerName
 					+ ChatColor.RESET;
 			return playerName;
 		}

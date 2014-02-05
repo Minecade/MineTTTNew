@@ -36,7 +36,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import src.main.java.de.orion304.ttt.main.ChatManager;
-import src.main.java.de.orion304.ttt.main.MainThread;
+import src.main.java.de.orion304.ttt.main.FileManager;
 import src.main.java.de.orion304.ttt.main.MineTTT;
 import src.main.java.de.orion304.ttt.main.TempBlock;
 import src.main.java.de.orion304.ttt.main.Tools;
@@ -49,6 +49,14 @@ public class PlayerListener implements Listener {
 	MineTTT plugin;
 	ChatManager chatManager;
 
+	/**
+	 * Instantiates the main listener for MineTTT
+	 * 
+	 * @param instance
+	 *            MineTTT plugin instance
+	 * 
+	 * @return PlayerListener instance
+	 */
 	public PlayerListener(MineTTT instance) {
 		plugin = instance;
 		chatManager = new ChatManager(instance);
@@ -240,13 +248,13 @@ public class PlayerListener implements Listener {
 			ChatColor color = ChatColor.WHITE;
 			switch (playerTeam) {
 			case INNOCENT:
-				color = MainThread.innocentColor;
+				color = FileManager.innocentColor;
 				break;
 			case DETECTIVE:
-				color = MainThread.detectiveColor;
+				color = FileManager.detectiveColor;
 				break;
 			case TRAITOR:
-				color = MainThread.traitorColor;
+				color = FileManager.traitorColor;
 				break;
 			default:
 				break;

@@ -4,11 +4,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.entity.Player;
 
+import src.main.java.de.orion304.ttt.main.FileManager;
+
 public class DetectiveCompass {
 
 	private static ConcurrentHashMap<Player, DetectiveCompass> compasses = new ConcurrentHashMap<>();
 
-	private static final long duration = 5000L;
+	private static long duration = FileManager.compassDuration;
 
 	private Player detective, killer;
 	private long starttime;
@@ -18,7 +20,7 @@ public class DetectiveCompass {
 		this.killer = killer;
 
 		starttime = System.currentTimeMillis();
-
+		duration = FileManager.compassDuration;
 		compasses.put(detective, this);
 	}
 

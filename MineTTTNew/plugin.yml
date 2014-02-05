@@ -26,9 +26,6 @@ commands:
     spectate:
         description: Choose to spectate instead of play the game.
         usage: spectate
-    signin:
-        description: Sign in with your Minecade account.
-        usage: signin <username> <password>
     update:
         description: Asks the server to update your Minecade information (number of coins, VIP status, etc)
         usage: update
@@ -50,7 +47,5 @@ permissions:
         default: true
     minettt.spectate:
         default: op
-    minettt.signin:
-        default: true
     minettt.update:
         default: true
