@@ -13,6 +13,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Scoreboard;
@@ -26,109 +27,67 @@ public class MainThread implements Runnable {
 	private static long preptime = FileManager.preparationTime;
 
 	// Variables for use in processing
-	private MineTTT plugin;
-	private Server server;
+	private final MineTTT plugin;
+	private final Server server;
 
 	// Initialization variables
 	private int playerThreshold = FileManager.minimumNumberOfPlayers;
 	private ConcurrentHashMap<String, Location> arenaLocations = new ConcurrentHashMap<>();
 	private Location arenaLocation, lobbyLocation;
-	private double radius = 4.5;
-	private Random random;
+	private final double radius = 4.5;
+	private final Random random;
 
 	private GameState state = GameState.OFF;
 	private long time, starttime, lastannouncetime = (preptime - 1000) / 10000;
 
 	public MainThread(MineTTT instance) {
-		plugin = instance;
-		server = Bukkit.getServer();
-		random = new Random();
+		this.plugin = instance;
+		this.server = Bukkit.getServer();
+		this.random = new Random();
 
 		preptime = FileManager.preparationTime;
-		lastannouncetime = (preptime - 1000) / 10000;
-		playerThreshold = FileManager.minimumNumberOfPlayers;
+		this.lastannouncetime = (preptime - 1000) / 10000;
+		this.playerThreshold = FileManager.minimumNumberOfPlayers;
 
-		arenaLocations = plugin.fileManager.getArenaLocations();
-		lobbyLocation = plugin.fileManager.getLobbyLocation();
+		this.arenaLocations = this.plugin.fileManager.getArenaLocations();
+		this.lobbyLocation = this.plugin.fileManager.getLobbyLocation();
 
-		if (lobbyLocation == null)
-			lobbyLocation = server.getWorlds().get(0).getSpawnLocation();
-	}
-
-	// The heart of the thread of the program
-	@Override
-	public void run() {
-		time = System.currentTimeMillis();
-
-		switch (state) {
-		case OFF:
-			Player[] players = server.getOnlinePlayers();
-			if (players.length >= playerThreshold) {
-				startPreparations();
-			}
-
-			break;
-		case GAME_PREPARING:
-			long remainingtime = (starttime + preptime - time) / 1000L;
-			TTTPlayer.setAllLevel((int) remainingtime);
-			if (remainingtime <= 0) {
-				startGame();
-				break;
-			}
-			if ((remainingtime - 1) / 10 != lastannouncetime) {
-				server.broadcastMessage(ChatColor.LIGHT_PURPLE
-						+ "The game begins in " + remainingtime + " seconds!");
-				lastannouncetime = (remainingtime - 1) / 10;
-			}
-			break;
-		case GAME_RUNNING:
-			DetectiveCompass.progressAll();
-			handleSpectators();
-			break;
+		if (this.lobbyLocation == null) {
+			this.lobbyLocation = this.server.getWorlds().get(0)
+					.getSpawnLocation();
 		}
-
 	}
 
-	private void killScoreboard() {
-		Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
-		board.clearSlot(DisplaySlot.SIDEBAR);
-	}
-
-	private void handleSpectators() {
-		if (!isGameRunning())
+	private void clearDrops() {
+		if (this.arenaLocation == null) {
 			return;
-		for (Player player : Bukkit.getOnlinePlayers()) {
-			if (player.isDead())
+		}
+		for (Entity entity : this.arenaLocation.getWorld().getEntities()) {
+			if (entity instanceof LivingEntity) {
 				continue;
-			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
-			if (Tplayer.getTeam() == PlayerTeam.NONE) {
-				if (player.getGameMode() != GameMode.CREATIVE
-						&& Tplayer.canSpectate()) {
-					player.setGameMode(GameMode.CREATIVE);
-					player.closeInventory();
-					player.getInventory().clear();
-					Tplayer.resetPlayer();
-					TTTPlayer.allRegisterPlayer(Tplayer);
-					Tplayer.registerAllPlayers();
-					player.sendMessage(FileManager.spectatorColor
-							+ "You are now spectating.");
-					teleportPlayer(player, arenaLocation);
-				}
 			}
+			entity.remove();
 		}
 	}
 
-	public GameState getGameStatus() {
-		return state;
+	private void clearInventories() {
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
+			if (Tplayer.getTeam() != PlayerTeam.NONE) {
+				player.getInventory().clear();
+			}
+		}
 	}
 
 	public void endGame(boolean forced) {
-		state = GameState.OFF;
+		this.state = GameState.OFF;
+		this.plugin.playerListener.resetDeadPlayers();
 		makeAllVisible();
 		killScoreboard();
 		boolean traitorsWon = true;
-		if (TTTPlayer.getNumberOfTraitors() == 0)
+		if (TTTPlayer.getNumberOfTraitors() == 0) {
 			traitorsWon = false;
+		}
 
 		String endMessage = "The game has ended! ";
 		if (traitorsWon) {
@@ -152,59 +111,137 @@ public class MainThread implements Runnable {
 		TTTPlayer.showAllPreGameScoreboards();
 
 		for (Player player : Bukkit.getOnlinePlayers()) {
-			teleportPlayer(player, lobbyLocation);
+			teleportPlayer(player, this.lobbyLocation);
 			player.setGameMode(GameMode.ADVENTURE);
 		}
 
 	}
 
-	private void clearInventories() {
+	public void findKiller(Player detective, Player killer) {
+		new DetectiveCompass(detective, killer);
+	}
+
+	public Location getArenaLocation(String name) {
+		if (this.arenaLocations.containsKey(name)) {
+			return this.arenaLocations.get(name);
+		}
+		return this.arenaLocations.get("default");
+	}
+
+	public ConcurrentHashMap<String, Location> getArenaLocations() {
+		return this.arenaLocations;
+	}
+
+	public Location getCurrentArenaLocation() {
+		return this.arenaLocation;
+	}
+
+	public GameState getGameStatus() {
+		return this.state;
+	}
+
+	public Location getLobbyLocation() {
+		return this.lobbyLocation;
+	}
+
+	private void handleSpectators() {
+		if (!isGameRunning()) {
+			return;
+		}
 		for (Player player : Bukkit.getOnlinePlayers()) {
+			if (player.isDead()) {
+				continue;
+			}
 			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
-			if (Tplayer.getTeam() != PlayerTeam.NONE) {
-				player.getInventory().clear();
+			if (Tplayer.getTeam() == PlayerTeam.NONE) {
+				if (player.getGameMode() != GameMode.CREATIVE
+						&& Tplayer.canSpectate()) {
+					player.setGameMode(GameMode.CREATIVE);
+					player.closeInventory();
+					player.getInventory().clear();
+					Tplayer.resetPlayer();
+					TTTPlayer.allRegisterPlayer(Tplayer);
+					Tplayer.registerAllPlayers();
+					player.sendMessage(FileManager.spectatorColor
+							+ "You are now spectating.");
+					teleportPlayer(player, this.arenaLocation);
+				}
 			}
 		}
 	}
 
-	private void clearDrops() {
-		if (arenaLocation == null)
-			return;
-		for (Entity entity : arenaLocation.getWorld().getEntities()) {
-			if (entity instanceof LivingEntity)
-				continue;
-			entity.remove();
+	public boolean isGameRunning() {
+		return this.state == GameState.GAME_RUNNING;
+	}
+
+	private void killScoreboard() {
+		Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+		board.clearSlot(DisplaySlot.SIDEBAR);
+	}
+
+	public void makeAllVisible() {
+		Player[] players = Bukkit.getOnlinePlayers();
+		for (Player player1 : players) {
+			for (Player player2 : players) {
+				if (!player1.canSee(player2)) {
+					TTTPlayer.showPlayer(player2, player1);
+				}
+			}
 		}
 	}
 
-	public void startPreparations() {
-		makeAllVisible();
-		TTTPlayer.resetScoreboards();
-		if (arenaLocations.isEmpty()) {
-			Tools.verbose("Game cannot start - there is no arena location created.");
-			return;
-		}
-		state = GameState.GAME_PREPARING;
-		starttime = time;
-		long duration = preptime / 1000L;
-		server.broadcastMessage(ChatColor.LIGHT_PURPLE
-				+ "The game will begin in " + duration + " seconds!");
+	// The heart of the thread of the program
+	@Override
+	public void run() {
+		this.time = System.currentTimeMillis();
 
-		for (Player player : server.getOnlinePlayers()) {
-			teleportPlayer(player, lobbyLocation);
+		switch (this.state) {
+		case OFF:
+			Player[] players = this.server.getOnlinePlayers();
+			if (players.length >= this.playerThreshold) {
+				startPreparations();
+			}
+
+			break;
+		case GAME_PREPARING:
+			long remainingtime = (this.starttime + preptime - this.time) / 1000L;
+			TTTPlayer.setAllLevel((int) remainingtime);
+			if (remainingtime <= 0) {
+				startGame();
+				break;
+			}
+			if ((remainingtime - 1) / 10 != this.lastannouncetime) {
+				this.server.broadcastMessage(ChatColor.LIGHT_PURPLE
+						+ "The game begins in " + remainingtime + " seconds!");
+				this.lastannouncetime = (remainingtime - 1) / 10;
+			}
+			break;
+		case GAME_RUNNING:
+			DetectiveCompass.progressAll();
+			handleSpectators();
+			break;
 		}
 
-		TTTPlayer.showAllPrepScoreboards();
-		TTTPlayer.installAllVoteTools();
+	}
+
+	public void setArenaLocation(String name, Location location) {
+		this.arenaLocations.put(name, location);
+		this.plugin.fileManager.setArenaLocations(this.arenaLocations);
+	}
+
+	public void setLobbyLocation(Location location) {
+		this.lobbyLocation = location;
+		this.plugin.fileManager.setLobbyLocation(location);
+
 	}
 
 	private void startGame() {
-		arenaLocation = TTTPlayer.getWinningLocation();
-		state = GameState.GAME_RUNNING;
+		this.arenaLocation = TTTPlayer.getWinningLocation();
+		this.state = GameState.GAME_RUNNING;
 		TTTPlayer.reset();
 		makeAllVisible();
 
-		if (!plugin.teamHandler.initializeTeams()) {
+		if (!this.plugin.teamHandler.initializeTeams()) {
 			endGame(true);
 			return;
 		}
@@ -215,8 +252,9 @@ public class MainThread implements Runnable {
 			TTTPlayer player = TTTPlayer.getTTTPlayer(p);
 			PlayerTeam team = player.getTeam();
 
-			if (p == null)
+			if (p == null) {
 				continue;
+			}
 
 			switch (team) {
 			case INNOCENT:
@@ -239,16 +277,40 @@ public class MainThread implements Runnable {
 				continue;
 			}
 
-			teleportPlayer(p, arenaLocation);
+			teleportPlayer(p, this.arenaLocation);
 			p.setGameMode(GameMode.ADVENTURE);
 			p.setHealth(20D);
-			p.getInventory().setItem(0, new ItemStack(Material.STONE_SWORD, 1));
+			Inventory inventory = p.getInventory();
+			inventory.setItem(0, new ItemStack(Material.STONE_SWORD, 1));
+			inventory.setItem(1, new ItemStack(Material.BOW, 1));
+			inventory.setItem(4, new ItemStack(Material.ARROW, 40));
 		}
 
-		server.broadcastMessage(ChatColor.GREEN + "The game has begun!");
+		this.server.broadcastMessage(ChatColor.GREEN + "The game has begun!");
 		TTTPlayer.showAllGameScoreboards();
 		TTTPlayer.giveChatItemsToAll();
 
+	}
+
+	public void startPreparations() {
+		makeAllVisible();
+		TTTPlayer.resetScoreboards();
+		if (this.arenaLocations.isEmpty()) {
+			Tools.verbose("Game cannot start - there is no arena location created.");
+			return;
+		}
+		this.state = GameState.GAME_PREPARING;
+		this.starttime = this.time;
+		long duration = preptime / 1000L;
+		this.server.broadcastMessage(ChatColor.LIGHT_PURPLE
+				+ "The game will begin in " + duration + " seconds!");
+
+		for (Player player : this.server.getOnlinePlayers()) {
+			teleportPlayer(player, this.lobbyLocation);
+		}
+
+		TTTPlayer.showAllPrepScoreboards();
+		TTTPlayer.installAllVoteTools();
 	}
 
 	private void teleportPlayer(Player player, Location location) {
@@ -256,15 +318,15 @@ public class MainThread implements Runnable {
 		int i = 0;
 		Location loc;
 		while (true) {
-			double r = random.nextDouble() * radius;
-			double theta = random.nextDouble() * 2 * Math.PI;
+			double r = this.random.nextDouble() * this.radius;
+			double theta = this.random.nextDouble() * 2 * Math.PI;
 
 			double x = r * Math.cos(theta);
 			double y = r * Math.sin(theta);
 
 			loc = location.clone().add(x, 0, y);
 
-			Block block = Tools.getFloor(loc, (int) radius);
+			Block block = Tools.getFloor(loc, (int) this.radius);
 			if (block == null) {
 				if (i < numberOfTries) {
 					i++;
@@ -279,52 +341,6 @@ public class MainThread implements Runnable {
 		}
 		player.teleport(loc);
 
-	}
-
-	public boolean isGameRunning() {
-		return state == GameState.GAME_RUNNING;
-	}
-
-	public void setArenaLocation(String name, Location location) {
-		arenaLocations.put(name, location);
-		plugin.fileManager.setArenaLocations(arenaLocations);
-	}
-
-	public void setLobbyLocation(Location location) {
-		lobbyLocation = location;
-		plugin.fileManager.setLobbyLocation(location);
-
-	}
-
-	public Location getLobbyLocation() {
-		return lobbyLocation;
-	}
-
-	public Location getArenaLocation(String name) {
-		if (arenaLocations.containsKey(name))
-			return arenaLocations.get(name);
-		return arenaLocations.get("default");
-	}
-
-	public ConcurrentHashMap<String, Location> getArenaLocations() {
-		return arenaLocations;
-	}
-
-	public Location getCurrentArenaLocation() {
-		return arenaLocation;
-	}
-
-	public void findKiller(Player detective, Player killer) {
-		new DetectiveCompass(detective, killer);
-	}
-
-	public void makeAllVisible() {
-		Player[] players = Bukkit.getOnlinePlayers();
-		for (Player player1 : players) {
-			for (Player player2 : players) {
-				player1.showPlayer(player2);
-			}
-		}
 	}
 
 }

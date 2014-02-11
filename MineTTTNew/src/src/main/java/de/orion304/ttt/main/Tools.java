@@ -14,10 +14,9 @@ import src.main.java.de.orion304.ttt.players.DeathLocation;
 
 public class Tools {
 
-	private static final Integer[] nonOpaque = { 0, 6, 8, 9, 10, 11, 27, 28,
-			30, 31, 32, 37, 38, 39, 40, 50, 51, 55, 59, 66, 68, 69, 70, 72, 75,
-			76, 77, 78, 83, 90, 93, 94, 104, 105, 106, 111, 115, 119, 127, 131,
-			132 };
+	private static final Integer[] nonOpaque = { 0, 6, 8, 9, 27, 28, 30, 31,
+			32, 37, 38, 39, 40, 50, 55, 59, 66, 70, 72, 75, 76, 77, 78, 83, 90,
+			93, 94, 104, 105, 106, 111, 115, 119, 127, 131, 132 };
 
 	private static final BlockFace[] axis = { BlockFace.NORTH, BlockFace.EAST,
 			BlockFace.SOUTH, BlockFace.WEST };
@@ -141,10 +140,10 @@ public class Tools {
 					air = true;
 				} else {
 					air = false;
-					solidblock = block;
 				}
 			} else {
 				solidblock = block;
+				air = false;
 			}
 		}
 		return null;
@@ -186,6 +185,29 @@ public class Tools {
 		} else {
 			return axis[Math.round(yaw / 90f) & 0x3];
 		}
+	}
+
+	/**
+	 * Returns true if player1 is behind player2
+	 * 
+	 * @param player1
+	 * @param player2
+	 * @return
+	 */
+	public static boolean isBehind(Player player1, Player player2) {
+		Vector v1 = player1.getEyeLocation().getDirection();
+		v1.setY(0);
+		v1.normalize();
+
+		Vector v2 = player2.getEyeLocation().getDirection();
+		v2.setY(0);
+		v2.normalize();
+
+		double dot = v1.dot(v2);
+		if (dot > 0)
+			return true;
+
+		return false;
 	}
 
 }

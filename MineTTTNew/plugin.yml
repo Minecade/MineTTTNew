@@ -27,8 +27,11 @@ commands:
         description: Choose to spectate instead of play the game.
         usage: spectate
     update:
-        description: Asks the server to update your Minecade information (number of coins, VIP status, etc)
+        description: Asks the server to update your Minecade information (number of tokens, VIP status, etc)
         usage: update
+    shop:
+        description: Test command
+        usage: shop
         
 permissions:
     minettt.setarenaloction:
