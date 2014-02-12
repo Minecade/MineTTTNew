@@ -3,21 +3,15 @@ package src.main.java.de.orion304.ttt.listeners;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.server.v1_7_R1.EntityPlayer;
-import net.minecraft.server.v1_7_R1.EnumClientCommand;
-import net.minecraft.server.v1_7_R1.PacketPlayInClientCommand;
-import net.minecraft.server.v1_7_R1.PacketPlayOutAnimation;
-import net.minecraft.server.v1_7_R1.PacketPlayOutBed;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.SkullType;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Skull;
-import org.bukkit.craftbukkit.v1_7_R1.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -39,7 +33,6 @@ import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import src.main.java.de.orion304.ttt.main.ChatManager;
 import src.main.java.de.orion304.ttt.main.FileManager;
@@ -73,44 +66,45 @@ public class PlayerListener implements Listener {
 		this.chatManager = new ChatManager(instance);
 	}
 
-	@EventHandler
-	public void autoRespawn(final PlayerDeathEvent event) {
-		// auto-respawn
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				((CraftPlayer) event.getEntity()).getHandle().playerConnection
-						.a(new PacketPlayInClientCommand(
-								EnumClientCommand.PERFORM_RESPAWN));
-			}
-		}.runTaskLater(this.plugin, 1L);
-	}
-
-	private EntityPlayer getPlayer(Player player) {
-		return ((CraftPlayer) player).getHandle();
-	}
+	// @EventHandler(priority = EventPriority.HIGHEST)
+	// public void autoRespawn(final PlayerDeathEvent event) {
+	// // auto-respawn
+	// new BukkitRunnable() {
+	// @Override
+	// public void run() {
+	// ((CraftPlayer) event.getEntity()).getHandle().playerConnection
+	// .a(new PacketPlayInClientCommand(
+	// EnumClientCommand.PERFORM_RESPAWN));
+	// }
+	// }.runTaskLater(this.plugin, 1L);
+	// }
+	//
+	// private EntityPlayer getPlayer(Player player) {
+	// return ((CraftPlayer) player).getHandle();
+	// }
 
 	private void giveNugget(Player player) {
 		player.getInventory().addItem(nugget);
 	}
 
-	private void lookAlive(Player player) {
-		PacketPlayOutAnimation alive = new PacketPlayOutAnimation(
-				getPlayer(player), 2);
-		for (Player other : player.getWorld().getPlayers()) {
-			getPlayer(other).playerConnection.sendPacket(alive);
-		}
-	}
-
-	public void lookDead(final Player player, final Block block) {
-		PacketPlayOutBed bed = new PacketPlayOutBed(getPlayer(player),
-				block.getX(), block.getY(), block.getZ());
-		for (Player other : player.getWorld().getPlayers()) {
-			Tools.verbose("Sending packet to " + other.getName() + " with "
-					+ player.getName() + "'s body.");
-			getPlayer(other).playerConnection.sendPacket(bed);
-		}
-	}
+	//
+	// private void lookAlive(Player player) {
+	// PacketPlayOutAnimation alive = new PacketPlayOutAnimation(
+	// getPlayer(player), 2);
+	// for (Player other : player.getWorld().getPlayers()) {
+	// getPlayer(other).playerConnection.sendPacket(alive);
+	// }
+	// }
+	//
+	// private void lookDead(final Player player, final Block block) {
+	// PacketPlayOutBed bed = new PacketPlayOutBed(getPlayer(player),
+	// block.getX(), block.getY(), block.getZ());
+	// for (Player other : player.getWorld().getPlayers()) {
+	// Tools.verbose("Sending packet to " + other.getName() + " with "
+	// + player.getName() + "'s body.");
+	// getPlayer(other).playerConnection.sendPacket(bed);
+	// }
+	// }
 
 	@EventHandler
 	public void onBlockBreak(BlockBreakEvent event) {
@@ -144,9 +138,9 @@ public class PlayerListener implements Listener {
 		Entity damageDealer = event.getDamager();
 		Entity damageTaker = event.getEntity();
 
-		// if (damageDealer instanceof Projectile) {
-		// damageDealer = ((Projectile) damageDealer).getShooter();
-		// }
+		if (damageDealer instanceof Projectile) {
+			damageDealer = ((Projectile) damageDealer).getShooter();
+		}
 
 		if (damageDealer instanceof Player && damageTaker instanceof Player) {
 			Player damager = (Player) damageDealer;
@@ -164,10 +158,7 @@ public class PlayerListener implements Listener {
 
 			double newdamage = Tdealer.getDamage(player, damage,
 					event.getCause());
-			Tools.verbose(damage);
-			Tools.verbose(newdamage);
 
-			Tools.verbose(event.getCause());
 			if (newdamage != event.getDamage()) {
 				Tools.verbose("Cancel");
 				event.setCancelled(true);
@@ -400,7 +391,7 @@ public class PlayerListener implements Listener {
 
 	public void resetDeadPlayers() {
 		for (Player player : this.deadPlayers) {
-			lookAlive(player);
+			// lookAlive(player);
 		}
 		this.deadPlayers.clear();
 	}

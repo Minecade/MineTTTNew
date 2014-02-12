@@ -9,15 +9,12 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
-import net.minecraft.server.v1_7_R1.PacketPlayOutRelEntityMove;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.craftbukkit.v1_7_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.inventory.Inventory;
@@ -286,6 +283,9 @@ public class TTTPlayer {
 			}
 
 			if (item != null) {
+				if (item.getType() == Material.GOLD_NUGGET) {
+					Tplayer.openShop();
+				}
 				ItemMeta meta = item.getItemMeta();
 				if (meta != null) {
 					String name = item.getItemMeta().getDisplayName();
@@ -534,11 +534,12 @@ public class TTTPlayer {
 		if (!toShow.canSee(hidden)) {
 			toShow.showPlayer(hidden);
 		}
-		Location l = hidden.getLocation();
-		PacketPlayOutRelEntityMove packet = new PacketPlayOutRelEntityMove(
-				hidden.getEntityId(), (byte) l.getX(), (byte) l.getY(),
-				(byte) l.getZ());
-		((CraftPlayer) toShow).getHandle().playerConnection.sendPacket(packet);
+		// Location l = hidden.getLocation();
+		// PacketPlayOutRelEntityMove packet = new PacketPlayOutRelEntityMove(
+		// hidden.getEntityId(), (byte) l.getX(), (byte) l.getY(),
+		// (byte) l.getZ());
+		// ((CraftPlayer)
+		// toShow).getHandle().playerConnection.sendPacket(packet);
 		// Tools.verbose("Showing " + hidden.getName() + " to " +
 		// toShow.getName());
 		// if (!toShow.canSee(hidden)) {
@@ -850,6 +851,11 @@ public class TTTPlayer {
 		Player p = getPlayer();
 		if (p == null) {
 			return false;
+		}
+
+		if (item.getType() == Material.GOLD_NUGGET) {
+			openShop();
+			return true;
 		}
 
 		Inventory inventory = p.getInventory();

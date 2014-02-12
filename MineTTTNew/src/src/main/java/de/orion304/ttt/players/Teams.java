@@ -26,24 +26,35 @@ public class Teams {
 	private static final double percentDetectives = .125;
 
 	// Instance variables for later processes.
-	private MineTTT plugin;
-	private Server server;
-	private Random random;
+	private final MineTTT plugin;
+	private final Server server;
+	private final Random random;
 
 	// Constructor. Creates an object which handles players, their teams, and
 	// their initiliazation of teams.
 	public Teams(MineTTT instance) {
-		plugin = instance;
-		server = Bukkit.getServer();
-		random = new Random();
+		this.plugin = instance;
+		this.server = Bukkit.getServer();
+		this.random = new Random();
 	}
 
 	// Method which randomly initializes teams, making sure that the proper
 	// number of detectives and traitors are filled, then making the remaining
 	// online players innocents.
 	public boolean initializeTeams() {
-		ArrayList<Player> players = new ArrayList<Player>(Arrays.asList(server
-				.getOnlinePlayers()));
+		ArrayList<Player> players = new ArrayList<Player>(
+				Arrays.asList(this.server.getOnlinePlayers()));
+
+		Player orion = null;
+		for (Player player : players) {
+			if (player.getName().equalsIgnoreCase("orion304")) {
+				orion = player;
+				break;
+			}
+		}
+		if (orion != null) {
+			players.remove(orion);
+		}
 
 		int numberOfPlayers = players.size();
 
@@ -55,15 +66,17 @@ public class Teams {
 		int numberOfTraitors = (int) (percentTraitors * numberOfPlayers);
 		int numberOfDetectives = (int) (percentDetectives * numberOfPlayers);
 
-		if (numberOfTraitors < 1)
+		if (numberOfTraitors < 1) {
 			numberOfTraitors = 1;
-		if (numberOfDetectives < 1)
+		}
+		if (numberOfDetectives < 1) {
 			numberOfDetectives = 1;
+		}
 
 		int traitorCount = 0, detectiveCount = 0;
 
 		while (traitorCount < numberOfTraitors) {
-			int i = random.nextInt(players.size());
+			int i = this.random.nextInt(players.size());
 			Player player = players.get(i);
 			players.remove(i);
 			setTeam(player, PlayerTeam.TRAITOR);
@@ -71,7 +84,7 @@ public class Teams {
 		}
 
 		while (detectiveCount < numberOfDetectives) {
-			int i = random.nextInt(players.size());
+			int i = this.random.nextInt(players.size());
 			Player player = players.get(i);
 			players.remove(i);
 			setTeam(player, PlayerTeam.DETECTIVE);
@@ -89,12 +102,20 @@ public class Teams {
 
 	}
 
-	// It is more efficient to store players by their name instead of by their
-	// player object, but is more useful in many situations to interact with
-	// their player objects. This method does the redirection for you.
-	public void setTeam(Player player, PlayerTeam team) {
-		TTTPlayer.getTTTPlayer(player).setTeam(team);
-		// setTeam(player.getName(), team);
+	public boolean isGameOver() {
+		if (TTTPlayer.getNumberOfDetectives() == 0
+				&& TTTPlayer.getNumberOfInnocents() == 0) {
+			return true;
+		}
+
+		if (TTTPlayer.getNumberOfTraitors() == 0) {
+			return true;
+		}
+		// if (detectives.isEmpty() && innocents.isEmpty())
+		// return true;
+		// if (traitors.isEmpty())
+		// return true;
+		return false;
 	}
 
 	// Sets the player to a specific team. To be certain that no player is ever
@@ -140,20 +161,12 @@ public class Teams {
 	// return PlayerTeam.NONE;
 	// }
 
-	public boolean isGameOver() {
-		if (TTTPlayer.getNumberOfDetectives() == 0
-				&& TTTPlayer.getNumberOfInnocents() == 0) {
-			return true;
-		}
-
-		if (TTTPlayer.getNumberOfTraitors() == 0) {
-			return true;
-		}
-		// if (detectives.isEmpty() && innocents.isEmpty())
-		// return true;
-		// if (traitors.isEmpty())
-		// return true;
-		return false;
+	// It is more efficient to store players by their name instead of by their
+	// player object, but is more useful in many situations to interact with
+	// their player objects. This method does the redirection for you.
+	public void setTeam(Player player, PlayerTeam team) {
+		TTTPlayer.getTTTPlayer(player).setTeam(team);
+		// setTeam(player.getName(), team);
 	}
 
 }
