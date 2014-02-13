@@ -3,19 +3,27 @@ package src.main.java.de.orion304.ttt.listeners;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.server.v1_7_R1.EntityPlayer;
+import net.minecraft.server.v1_7_R1.EnumClientCommand;
+import net.minecraft.server.v1_7_R1.PacketPlayInClientCommand;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.SkullType;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Chest;
 import org.bukkit.block.Skull;
+import org.bukkit.craftbukkit.v1_7_R1.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
@@ -25,6 +33,7 @@ import org.bukkit.event.inventory.InventoryInteractEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
@@ -32,7 +41,9 @@ import org.bukkit.event.player.PlayerLoginEvent.Result;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import src.main.java.de.orion304.ttt.main.ChatManager;
 import src.main.java.de.orion304.ttt.main.FileManager;
@@ -66,22 +77,22 @@ public class PlayerListener implements Listener {
 		this.chatManager = new ChatManager(instance);
 	}
 
-	// @EventHandler(priority = EventPriority.HIGHEST)
-	// public void autoRespawn(final PlayerDeathEvent event) {
-	// // auto-respawn
-	// new BukkitRunnable() {
-	// @Override
-	// public void run() {
-	// ((CraftPlayer) event.getEntity()).getHandle().playerConnection
-	// .a(new PacketPlayInClientCommand(
-	// EnumClientCommand.PERFORM_RESPAWN));
-	// }
-	// }.runTaskLater(this.plugin, 1L);
-	// }
-	//
-	// private EntityPlayer getPlayer(Player player) {
-	// return ((CraftPlayer) player).getHandle();
-	// }
+	@EventHandler(priority = EventPriority.HIGHEST)
+	public void autoRespawn(final PlayerDeathEvent event) {
+		// auto-respawn
+		new BukkitRunnable() {
+			@Override
+			public void run() {
+				((CraftPlayer) event.getEntity()).getHandle().playerConnection
+						.a(new PacketPlayInClientCommand(
+								EnumClientCommand.PERFORM_RESPAWN));
+			}
+		}.runTaskLater(this.plugin, 2L);
+	}
+
+	private EntityPlayer getPlayer(Player player) {
+		return ((CraftPlayer) player).getHandle();
+	}
 
 	private void giveNugget(Player player) {
 		player.getInventory().addItem(nugget);
@@ -128,6 +139,12 @@ public class PlayerListener implements Listener {
 		}
 	}
 
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+	public void onBlockPlace(BlockPlaceEvent event) {
+		Player player = event.getPlayer();
+		TTTPlayer.handleBlockPlace(player, event.getBlock());
+	}
+
 	@EventHandler
 	public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
 		if (!this.plugin.thread.isGameRunning()) {
@@ -160,7 +177,6 @@ public class PlayerListener implements Listener {
 					event.getCause());
 
 			if (newdamage != event.getDamage()) {
-				Tools.verbose("Cancel");
 				event.setCancelled(true);
 				if (newdamage > 0) {
 					player.damage(newdamage);
@@ -174,8 +190,10 @@ public class PlayerListener implements Listener {
 	@EventHandler
 	public void onInventoryClick(InventoryClickEvent event) {
 		if (event.getWhoClicked() instanceof Player) {
+
 			boolean cancel = TTTPlayer.handleInventoryClick(
-					(Player) event.getWhoClicked(), event.getCurrentItem());
+					(Player) event.getWhoClicked(), event.getCurrentItem(),
+					event.getSlotType());
 			// if (cancel)
 			event.setCancelled(cancel);
 		}
@@ -200,6 +218,10 @@ public class PlayerListener implements Listener {
 
 	@EventHandler
 	public void onInventoryOpen(InventoryOpenEvent event) {
+		InventoryHolder holder = event.getInventory().getHolder();
+		if (holder instanceof Chest) {
+			this.plugin.chestHandler.handleChest((Chest) holder);
+		}
 		if (this.plugin.thread.isGameRunning()) {
 			if (!(event.getPlayer() instanceof Player)) {
 				Tools.verbose("not a player?");
@@ -222,9 +244,21 @@ public class PlayerListener implements Listener {
 	}
 
 	@EventHandler
-	public void onPlayerDeath(PlayerDeathEvent event) {
-		Tools.verbose("Death!");
+	public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+		String command = event.getMessage();
+		if (command.contains("tell")) {
+			Player player = event.getPlayer();
+			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
+			if (Tplayer.getTeam() == PlayerTeam.NONE
+					&& this.plugin.thread.isGameRunning()) {
+				player.sendMessage("You cannot send tells while spectating.");
+				event.setCancelled(true);
+			}
+		}
+	}
 
+	@EventHandler
+	public void onPlayerDeath(PlayerDeathEvent event) {
 		Player player = event.getEntity();
 
 		// Block block2 = Tools.getFloor(player.getEyeLocation(), 4);
@@ -262,29 +296,29 @@ public class PlayerListener implements Listener {
 
 			}
 
-			if ((damagerTeam == PlayerTeam.INNOCENT || damagerTeam == PlayerTeam.DETECTIVE)
-					&& playerTeam != PlayerTeam.TRAITOR) {
-				TrecentDamager.loseKarma();
-			}
+			if (playerTeam != PlayerTeam.NONE && damagerTeam != PlayerTeam.NONE) {
+				if ((damagerTeam == PlayerTeam.INNOCENT || damagerTeam == PlayerTeam.DETECTIVE)
+						&& playerTeam != PlayerTeam.TRAITOR) {
+					TrecentDamager.loseKarma();
+				}
 
-			if (playerTeam != PlayerTeam.TRAITOR
-					|| playerTeam != PlayerTeam.NONE) {
-				Tplayer.addKarma();
-				giveNugget(recentDamager);
-			}
+				if ((damagerTeam != PlayerTeam.TRAITOR && playerTeam == PlayerTeam.TRAITOR)) {
+					Tplayer.addKarma();
+					giveNugget(recentDamager);
+				}
 
-			if (playerTeam == PlayerTeam.TRAITOR
-					&& damagerTeam != PlayerTeam.TRAITOR) {
-				TrecentDamager.addKarma();
-				giveNugget(recentDamager);
-				TrecentDamager.giveSpeedBoost(2, 5);
-			}
+				if (damagerTeam == PlayerTeam.TRAITOR
+						&& playerTeam != PlayerTeam.TRAITOR) {
+					TrecentDamager.addKarma();
+					giveNugget(recentDamager);
+					TrecentDamager.giveSpeedBoost(2, 5);
+				}
 
-			if (playerTeam == PlayerTeam.TRAITOR
-					&& damagerTeam == PlayerTeam.TRAITOR) {
-				TrecentDamager.loseKarma();
+				if (playerTeam == PlayerTeam.TRAITOR
+						&& damagerTeam == PlayerTeam.TRAITOR) {
+					TrecentDamager.loseKarma();
+				}
 			}
-
 			deathMessage = player.getName()
 					+ " was slain, and revealed to be a";
 			if (playerTeam == PlayerTeam.INNOCENT) {
@@ -346,9 +380,16 @@ public class PlayerListener implements Listener {
 	}
 
 	@EventHandler
-	public void onPlayerJoin(PlayerJoinEvent event) {
-		Player player = event.getPlayer();
-		TTTPlayer.handleJoin(player);
+	public void onPlayerJoin(final PlayerJoinEvent event) {
+		new BukkitRunnable() {
+			@Override
+			public void run() {
+				Player player = event.getPlayer();
+
+				TTTPlayer.handleJoin(player);
+			}
+		}.runTaskLater(this.plugin, 2L);
+
 	}
 
 	@EventHandler

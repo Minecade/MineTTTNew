@@ -1,6 +1,7 @@
 package src.main.java.de.orion304.ttt.main;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -21,14 +22,21 @@ public class MineTTT extends JavaPlugin {
 	private final long delay = 20L * 0;
 	private final long tick = 5L;
 
-	private Server server;
+	private static MineTTT plugin;
 
+	public static MineTTT getPlugin() {
+		return plugin;
+	}
+
+	private Server server;
 	public Teams teamHandler;
 	public MainThread thread;
 	public BukkitScheduler scheduler;
 	private CommandHandler commandHandler;
 	public FileManager fileManager;
 	public MinecadePersistence minecade;
+
+	public ChestHandler chestHandler;
 
 	private PluginManager manager;
 
@@ -44,8 +52,11 @@ public class MineTTT extends JavaPlugin {
 	public void onDisable() {
 		if (this.thread.getGameStatus() != GameState.OFF) {
 			this.thread.endGame(true);
+			Bukkit.broadcastMessage(ChatColor.RED
+					+ "The game has ended because MineTTT is disabling (usually due to a server reload or shutdown).");
 		}
 		this.fileManager.savePlayers();
+		this.chestHandler.resetChests();
 
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			for (Player other : Bukkit.getOnlinePlayers()) {
@@ -60,6 +71,7 @@ public class MineTTT extends JavaPlugin {
 
 	@Override
 	public void onEnable() {
+		plugin = this;
 		this.server = getServer();
 		this.manager = this.server.getPluginManager();
 		registerListeners();
@@ -67,6 +79,7 @@ public class MineTTT extends JavaPlugin {
 		this.commandHandler = new CommandHandler(this);
 		this.fileManager = new FileManager(this);
 		this.thread = new MainThread(this);
+		this.chestHandler = new ChestHandler(this);
 
 		try {
 			this.minecade = new MinecadePersistence(this,
@@ -100,6 +113,7 @@ public class MineTTT extends JavaPlugin {
 			world.setGameRuleValue("mobGriefing", "false");
 		}
 
+		TTTPlayer.newScoreboards();
 		TTTPlayer.showAllPreGameScoreboards();
 	}
 

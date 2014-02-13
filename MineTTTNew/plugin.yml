@@ -32,6 +32,9 @@ commands:
     shop:
         description: Test command
         usage: shop
+    load:
+        description: Loads the config files
+        usage: load
         
 permissions:
     minettt.setarenaloction:
@@ -52,3 +55,5 @@ permissions:
         default: op
     minettt.update:
         default: true
+    minettt.load:
+        default: op

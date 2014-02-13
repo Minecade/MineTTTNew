@@ -45,16 +45,7 @@ public class Teams {
 		ArrayList<Player> players = new ArrayList<Player>(
 				Arrays.asList(this.server.getOnlinePlayers()));
 
-		Player orion = null;
-		for (Player player : players) {
-			if (player.getName().equalsIgnoreCase("orion304")) {
-				orion = player;
-				break;
-			}
-		}
-		if (orion != null) {
-			players.remove(orion);
-		}
+		players.removeAll(TTTPlayer.getSpectators());
 
 		int numberOfPlayers = players.size();
 

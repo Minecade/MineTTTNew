@@ -7,6 +7,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockIgniteEvent.IgniteCause;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -26,27 +27,27 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 public class WorldListener implements Listener {
 
-	@EventHandler
-	public void onEntityExplode(EntityExplodeEvent event) {
-		event.blockList().clear();
-	}
-
-	@EventHandler
-	public void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
-		event.setCancelled(true);
-		event.getPlayer().updateInventory();
-	}
-
-	@EventHandler
-	public void onPlayerBucketFill(PlayerBucketFillEvent event) {
-		event.setCancelled(true);
-		event.getPlayer().updateInventory();
-	}
-
 	@EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
 	public void onBlockBreak(BlockBreakEvent event) {
 		event.setCancelled(!(event.getPlayer().isOp() && event.getPlayer()
 				.getGameMode() == GameMode.CREATIVE));
+	}
+
+	@EventHandler
+	public void onBlockFade(BlockFadeEvent event) {
+		event.setCancelled(true);
+	}
+
+	@EventHandler
+	public void onBlockFlow(BlockFromToEvent event) {
+		event.setCancelled(true);
+	}
+
+	@EventHandler
+	public void onBlockIgnite(BlockIgniteEvent event) {
+		if (event.getCause() == IgniteCause.LIGHTNING) {
+			event.setCancelled(true);
+		}
 	}
 
 	@EventHandler
@@ -56,6 +57,18 @@ public class WorldListener implements Listener {
 		if (event.isCancelled()) {
 			event.getPlayer().updateInventory();
 		}
+	}
+
+	@EventHandler
+	public void onEntityCombustEvent(EntityCombustEvent event) {
+		if (event.getDuration() == 8 && !(event.getEntity() instanceof Player)) {
+			event.setCancelled(true);
+		}
+	}
+
+	@EventHandler
+	public void onEntityExplode(EntityExplodeEvent event) {
+		event.blockList().clear();
 	}
 
 	@EventHandler
@@ -74,15 +87,12 @@ public class WorldListener implements Listener {
 	}
 
 	@EventHandler
-	public void onEntityCombustEvent(EntityCombustEvent event) {
-		if (event.getDuration() == 8 && !(event.getEntity() instanceof Player)) {
-			event.setCancelled(true);
+	public void onHungerChange(FoodLevelChangeEvent event) {
+		event.setFoodLevel(20);
+		if (event.getEntity() instanceof Player) {
+			Player player = (Player) event.getEntity();
+			player.setSaturation(200);
 		}
-	}
-
-	@EventHandler
-	public void onBlockFade(BlockFadeEvent event) {
-		event.setCancelled(true);
 	}
 
 	@EventHandler
@@ -91,15 +101,20 @@ public class WorldListener implements Listener {
 	}
 
 	@EventHandler
-	public void onPlayerDropItem(PlayerDropItemEvent event) {
+	public void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
 		event.setCancelled(true);
+		event.getPlayer().updateInventory();
 	}
 
 	@EventHandler
-	public void onBlockIgnite(BlockIgniteEvent event) {
-		if (event.getCause() == IgniteCause.LIGHTNING) {
-			event.setCancelled(true);
-		}
+	public void onPlayerBucketFill(PlayerBucketFillEvent event) {
+		event.setCancelled(true);
+		event.getPlayer().updateInventory();
+	}
+
+	@EventHandler
+	public void onPlayerDropItem(PlayerDropItemEvent event) {
+		event.setCancelled(true);
 	}
 
 	@EventHandler
@@ -108,22 +123,13 @@ public class WorldListener implements Listener {
 	}
 
 	@EventHandler
-	public void onPlayerQuit(PlayerQuitEvent event) {
-		// event.setQuitMessage(null);
-	}
-
-	@EventHandler
 	public void onPlayerKick(PlayerKickEvent event) {
 		event.setLeaveMessage(null);
 	}
 
 	@EventHandler
-	public void onHungerChange(FoodLevelChangeEvent event) {
-		event.setFoodLevel(20);
-		if (event.getEntity() instanceof Player) {
-			Player player = (Player) event.getEntity();
-			player.setSaturation(200);
-		}
+	public void onPlayerQuit(PlayerQuitEvent event) {
+		// event.setQuitMessage(null);
 	}
 
 }

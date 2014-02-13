@@ -15,10 +15,15 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -30,6 +35,7 @@ import org.bukkit.scoreboard.Team;
 
 import src.main.java.de.orion304.ttt.listeners.PlayerListener;
 import src.main.java.de.orion304.ttt.main.Action;
+import src.main.java.de.orion304.ttt.main.Claymore;
 import src.main.java.de.orion304.ttt.main.FileManager;
 import src.main.java.de.orion304.ttt.main.GameState;
 import src.main.java.de.orion304.ttt.main.MineTTT;
@@ -83,6 +89,8 @@ public class TTTPlayer {
 			claimLabel = "Call out a traitor";
 
 	private static final String voteForAMap = "Vote for a map...";
+	private static final String spectateGame = "Spectate this game";
+	private static final String playGame = "Play this game";
 
 	private static ItemStack trustItem, suspectItem, claimItem;
 
@@ -186,6 +194,17 @@ public class TTTPlayer {
 		return players.values();
 	}
 
+	public static Collection<Player> getSpectators() {
+		List<Player> players = new ArrayList<>();
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = getTTTPlayer(player);
+			if (Tplayer.isSpectating()) {
+				players.add(player);
+			}
+		}
+		return players;
+	}
+
 	public static TTTPlayer getTTTPlayer(Player player) {
 		if (player == null) {
 			return null;
@@ -201,6 +220,15 @@ public class TTTPlayer {
 		return new TTTPlayer(playerName);
 	}
 
+	//
+	// public static TTTPlayer[] getTTTPlayers(Player[] players) {
+	// List<TTTPlayer> result = new ArrayList<>();
+	// for (Player player : players) {
+	// result.add(getTTTPlayer(player));
+	// }
+	// return result.toArray(new TTTPlayer[result.size()]);
+	// }
+
 	private static ArrayList<ItemStack> getVotingItems() {
 		ArrayList<ItemStack> items = new ArrayList<>();
 		int i = 0;
@@ -208,6 +236,8 @@ public class TTTPlayer {
 			ItemStack stack = new ItemStack(Material.DIAMOND, 1);
 			ItemMeta meta = stack.getItemMeta();
 			meta.setDisplayName("Vote for " + key);
+			List<String> lore = plugin.thread.getArenaLore(key);
+			meta.setLore(lore);
 			stack.setItemMeta(meta);
 			items.add(i, stack);
 			i++;
@@ -253,6 +283,23 @@ public class TTTPlayer {
 		}
 	}
 
+	public static void handleBlockPlace(Player player, Block block) {
+		ItemStack item = player.getItemInHand();
+		if (item == null) {
+			return;
+		}
+		ItemMeta meta = item.getItemMeta();
+		if (meta == null) {
+			return;
+		}
+		String name = meta.getDisplayName();
+		if (name.equalsIgnoreCase("Claymore")) {
+			PlayerInventory inventory = player.getInventory();
+			inventory.clear(inventory.getHeldItemSlot());
+			getTTTPlayer(player).placeClaymore(block);
+		}
+	}
+
 	public static void handleDeath(Player player) {
 		player.setGameMode(GameMode.ADVENTURE);
 		TTTPlayer Tplayer = getTTTPlayer(player);
@@ -263,7 +310,7 @@ public class TTTPlayer {
 		if (plugin.teamHandler.isGameOver()) {
 			plugin.thread.endGame(false);
 		} else {
-			player.getInventory().clear();
+			Tools.clearInventory(player);
 			showAllGameScoreboards();
 		}
 	}
@@ -321,7 +368,8 @@ public class TTTPlayer {
 		return false;
 	}
 
-	public static boolean handleInventoryClick(Player player, ItemStack item) {
+	public static boolean handleInventoryClick(Player player, ItemStack item,
+			SlotType slotType) {
 		GameState state = plugin.thread.getGameStatus();
 		TTTPlayer Tplayer = getTTTPlayer(player);
 		switch (state) {
@@ -333,7 +381,9 @@ public class TTTPlayer {
 			if (Tplayer.getTeam() == PlayerTeam.NONE) {
 				return true;
 			}
-			return Tplayer.handleShopClick(item);
+			if (slotType == SlotType.CONTAINER) {
+				return Tplayer.handleShopClick(item);
+			}
 		}
 		return false;
 	}
@@ -368,9 +418,20 @@ public class TTTPlayer {
 		Tplayer.loadMinecadeAccount();
 		Tplayer.team = PlayerTeam.NONE;
 		player.setGameMode(GameMode.ADVENTURE);
+		player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
 		switch (state) {
 		case OFF:
 			Tplayer.showPreGameScoreboard();
+			int need = plugin.thread.playerThreshold
+					- Bukkit.getOnlinePlayers().length;
+			ChatColor color = ChatColor.AQUA;
+			if (need == 1) {
+				Bukkit.broadcastMessage(color
+						+ "1 more player must join before the game can start.");
+			} else if (need > 1) {
+				Bukkit.broadcastMessage(color.toString() + need
+						+ " more players must join before the game can start.");
+			}
 			break;
 		case GAME_PREPARING:
 			Tplayer.showPrepScoreboard();
@@ -379,6 +440,7 @@ public class TTTPlayer {
 		case GAME_RUNNING:
 			allRegisterPlayer(player);
 			Tplayer.showGameScoreboard();
+			Claymore.showClaymores(Tplayer);
 			break;
 		}
 	}
@@ -387,6 +449,7 @@ public class TTTPlayer {
 		TTTPlayer Tplayer = getTTTPlayer(player);
 		Tplayer.team = PlayerTeam.NONE;
 		player.setGameMode(GameMode.ADVENTURE);
+		player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
 		Tplayer.resetPlayer();
 		if (plugin.thread.isGameRunning()) {
 			if (plugin.teamHandler.isGameOver()) {
@@ -398,8 +461,6 @@ public class TTTPlayer {
 	}
 
 	public static void installAllVoteTools() {
-		ArrayList<ItemStack> items = getVotingItems();
-
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
 			Tplayer.installVoteTools();
@@ -427,6 +488,13 @@ public class TTTPlayer {
 				+ bold + "Traitors:");
 		boldInnocentLabel = Bukkit.getOfflinePlayer(FileManager.innocentColor
 				+ bold + "Innocents:");
+	}
+
+	public static void newScoreboards() {
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = getTTTPlayer(player);
+			Tplayer.newScoreboard();
+		}
 	}
 
 	public static void registerAllScoreboards() {
@@ -581,6 +649,8 @@ public class TTTPlayer {
 
 	private final List<SpecialItem> ownedItems = new ArrayList<>();
 
+	private boolean spectating = false;
+
 	public TTTPlayer(String name) {
 		this.playerName = name;
 		players.put(this.playerName, this);
@@ -732,7 +802,7 @@ public class TTTPlayer {
 				if (!specialItem.isCauseApplicable(cause)) {
 					continue;
 				}
-				Tools.verbose(specialItem.getUses());
+
 				if (specialItem.getUses() == 0) {
 					me.getInventory()
 							.clear(me.getInventory().getHeldItemSlot());
@@ -763,7 +833,7 @@ public class TTTPlayer {
 					specialItem.use();
 				}
 				if (specialItem.getUses() == 0) {
-					Tools.verbose("Removing");
+
 					me.getInventory()
 							.clear(me.getInventory().getHeldItemSlot());
 					this.ownedItems.remove(specialItem);
@@ -859,6 +929,13 @@ public class TTTPlayer {
 		}
 
 		Inventory inventory = p.getInventory();
+		InventoryView view = p.getOpenInventory();
+		if (view.getType() != InventoryType.CHEST) {
+			return false;
+		}
+		if (item.getItemMeta() == null) {
+			return false;
+		}
 		for (SpecialItem shopItem : this.traitorShop) {
 			if (item.getItemMeta().getDisplayName()
 					.equals(shopItem.getDisplayName())) {
@@ -943,16 +1020,33 @@ public class TTTPlayer {
 			return;
 		}
 		Inventory inventory = p.getInventory();
-		inventory.clear();
+		Tools.clearInventory(p);
 		ItemStack vote = new ItemStack(Material.DIAMOND, 1);
 		ItemMeta voteMeta = vote.getItemMeta();
 		voteMeta.setDisplayName(voteForAMap);
+		List<String> lore = new ArrayList<>();
+		lore.add("You cannot choose to spectate after you've voted.");
+		voteMeta.setLore(lore);
 		vote.setItemMeta(voteMeta);
 		inventory.setItem(0, vote);
+
+		if (canSpectate()) {
+			ItemStack spectate = new ItemStack(Material.SKULL_ITEM, 1,
+					(short) 3);
+			ItemMeta spectateMeta = spectate.getItemMeta();
+			spectateMeta.setDisplayName(spectateGame);
+			spectate.setItemMeta(spectateMeta);
+			inventory.setItem(1, spectate);
+		}
+
 	}
 
 	public boolean isBanned() {
 		return System.currentTimeMillis() < this.banDate + this.banLength;
+	}
+
+	private boolean isSpectating() {
+		return this.spectating;
 	}
 
 	public void loadMinecadeAccount() {
@@ -964,7 +1058,15 @@ public class TTTPlayer {
 	}
 
 	public void loseKarma() {
-		addKarma(-(int) (random.nextDouble() * 20 + 40));
+		addKarma(-(int) (random.nextDouble() * 50 + 120));
+	}
+
+	private void newScoreboard() {
+		Player p = getPlayer();
+		if (p == null) {
+			return;
+		}
+		p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
 	}
 
 	public void openShop() {
@@ -1009,9 +1111,24 @@ public class TTTPlayer {
 		SpecialItem theBow = new SpecialItem(Material.BOW, "The Huntsman", 1,
 				Power.ONE_HIT_KILL, causes, 1, 0,
 				"Fires an arrow which instantly kills its target.",
-				"Destroyed after 1 user.");
+				"Destroyed after 1 use.");
 		traitorItems.add(theBow.getItemInShop(inventory));
 		this.traitorShop.add(theBow);
+
+		causes = new DamageCause[] {};
+		SpecialItem claymore = new SpecialItem(
+				Material.TNT,
+				"Claymore",
+				1,
+				Power.MINE,
+				causes,
+				1,
+				0,
+				"Plants a mine that explodes when someone steps on it.",
+				"Only you and other traitors will see the Claymore once placed.",
+				"Arms after 5 seconds.");
+		traitorItems.add(claymore.getItemInShop(inventory));
+		this.traitorShop.add(claymore);
 
 		Inventory shopInventory = Bukkit.getServer().createInventory(null,
 				getMultipleOfNine(traitorItems.size()), "Traitor shop");
@@ -1019,6 +1136,10 @@ public class TTTPlayer {
 				.size()]));
 
 		p.openInventory(shopInventory);
+	}
+
+	private void placeClaymore(Block block) {
+		new Claymore(block);
 	}
 
 	public void refreshScoreboard() {
@@ -1037,17 +1158,6 @@ public class TTTPlayer {
 		}
 	}
 
-	public void registerAllPlayers() {
-		for (Player player : Bukkit.getOnlinePlayers()) {
-			TTTPlayer Tplayer = getTTTPlayer(player);
-			registerPlayer(Tplayer);
-		}
-	}
-
-	public void registerPlayer(Player player) {
-		registerPlayer(getTTTPlayer(player));
-	}
-
 	// private void installVoteTools(List<ItemStack> items) {
 	// Player p = getPlayer();
 	// if (p == null)
@@ -1059,6 +1169,17 @@ public class TTTPlayer {
 	// }
 	// p.updateInventory();
 	// }
+
+	public void registerAllPlayers() {
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = getTTTPlayer(player);
+			registerPlayer(Tplayer);
+		}
+	}
+
+	public void registerPlayer(Player player) {
+		registerPlayer(getTTTPlayer(player));
+	}
 
 	public void registerPlayer(TTTPlayer player) {
 		switch (this.team) {
@@ -1109,12 +1230,10 @@ public class TTTPlayer {
 			if (me.canSee(p)) {
 				me.hidePlayer(p);
 			}
-			Tools.verbose("Hiding " + p.getName() + " from " + me.getName());
-			Tools.verbose(me.canSee(p));
+
 		} else {
 			showPlayer(p, me);
-			Tools.verbose("Showing " + p.getName() + " to " + me.getName());
-			Tools.verbose(me.canSee(p));
+
 		}
 
 	}
@@ -1254,7 +1373,7 @@ public class TTTPlayer {
 
 		karmaScore.setScore(this.karma);
 		int coins = (int) this.account.getButterCoins();
-		butterCoinScore.setScore((int) this.account.getButterCoins());
+		butterCoinScore.setScore(coins);
 	}
 
 	private void showPrepScoreboard() {
@@ -1276,8 +1395,8 @@ public class TTTPlayer {
 			objective = this.scoreboard.registerNewObjective("votes", "dummy");
 		}
 
-		if (!objective.getDisplayName().equals("Map Vote")) {
-			objective.setDisplayName("Map Vote");
+		if (!objective.getDisplayName().equals(ChatColor.GOLD + "Map Vote")) {
+			objective.setDisplayName(ChatColor.GOLD + "Map Vote");
 		}
 
 		if (objective.getDisplaySlot() != DisplaySlot.SIDEBAR) {
@@ -1319,9 +1438,6 @@ public class TTTPlayer {
 	}
 
 	private boolean vote(ItemStack item) {
-		if (this.hasVoted) {
-			return false;
-		}
 		Player player = getPlayer();
 		if (player == null) {
 			return false;
@@ -1335,6 +1451,25 @@ public class TTTPlayer {
 		String key = item.getItemMeta().getDisplayName();
 		if (key == null) {
 			return false;
+		}
+		if (key.equals(playGame)) {
+			this.spectating = false;
+			installVoteTools();
+			return true;
+		}
+		if (this.hasVoted) {
+			return false;
+		}
+		if (key.equals(spectateGame)) {
+			this.spectating = true;
+			Tools.clearInventory(player);
+			Inventory inventory = player.getInventory();
+			ItemStack playItem = new ItemStack(Material.GOLD_SWORD, 1);
+			ItemMeta playMeta = playItem.getItemMeta();
+			playMeta.setDisplayName(playGame);
+			playItem.setItemMeta(playMeta);
+			inventory.setItem(0, playItem);
+			return true;
 		}
 		if (key.equals(voteForAMap)) {
 			Inventory voteInventory = Bukkit.getServer()
@@ -1364,11 +1499,11 @@ public class TTTPlayer {
 			info.voteCount++;
 			votes.put(key, info);
 			showAllPrepScoreboards();
-			player.getInventory().clear(0);
+			Tools.clearInventory(player);
 			player.closeInventory();
 			player.updateInventory();
 			player.sendMessage(ChatColor.GREEN + "You have voted for the "
-					+ key + " map.");
+					+ key + ChatColor.GREEN + " map.");
 			return true;
 		}
 		return false;

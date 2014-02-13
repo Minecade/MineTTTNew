@@ -3,6 +3,7 @@ package src.main.java.de.orion304.ttt.main;
 import java.util.ArrayList;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -21,6 +22,7 @@ public class CommandHandler {
 
 	private void forceEnd(Player player, String[] args) {
 		this.plugin.thread.endGame(true);
+		Bukkit.broadcastMessage(ChatColor.RED + "An admin has ended the game.");
 	}
 
 	private void forceStart(Player player, String[] args) {
@@ -28,11 +30,8 @@ public class CommandHandler {
 	}
 
 	private void getStatus(Player player, String[] args) {
-		for (Player player1 : Bukkit.getOnlinePlayers()) {
-			for (Player player2 : Bukkit.getOnlinePlayers()) {
-				Tools.verbose(player1.getName() + " can see "
-						+ player2.getName() + ": " + player1.canSee(player2));
-			}
+		for (Player p : Bukkit.getOnlinePlayers()) {
+			Tools.verbose(p.getName());
 		}
 		sendMessage(player, "The status of MineTTT is: "
 				+ this.plugin.thread.getGameStatus().toString());
@@ -82,8 +81,15 @@ public class CommandHandler {
 		case "shop":
 			shop(player);
 			return true;
+		case "load":
+			load();
+			return true;
 		}
 		return false;
+	}
+
+	private void load() {
+		this.plugin.fileManager.load();
 	}
 
 	private void sendMessage(Player player, String message) {
@@ -213,7 +219,6 @@ public class CommandHandler {
 	}
 
 	private void shop(Player player) {
-		Tools.verbose("Openning shop");
 		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
 		Tplayer.openShop();
 	}

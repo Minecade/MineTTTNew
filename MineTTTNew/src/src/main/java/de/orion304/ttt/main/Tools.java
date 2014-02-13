@@ -8,6 +8,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.Vector;
 
 import src.main.java.de.orion304.ttt.players.DeathLocation;
@@ -27,11 +28,54 @@ public class Tools {
 
 	private static final double detectiveRange = 5;
 
-	public static <T> void verbose(T something) {
-		if (something == null)
-			System.out.println("null");
-		else
-			System.out.println(something.toString());
+	public static void clearInventory(Player player) {
+		PlayerInventory inventory = player.getInventory();
+		inventory.clear();
+		inventory.setArmorContents(null);
+	}
+
+	public static double getDistanceFromLine(Vector line, Location pointonline,
+			Location point) {
+
+		Vector AP = new Vector();
+		double Ax, Ay, Az;
+		Ax = pointonline.getX();
+		Ay = pointonline.getY();
+		Az = pointonline.getZ();
+
+		double Px, Py, Pz;
+		Px = point.getX();
+		Py = point.getY();
+		Pz = point.getZ();
+
+		AP.setX(Px - Ax);
+		AP.setY(Py - Ay);
+		AP.setZ(Pz - Az);
+
+		return (AP.crossProduct(line).length()) / (line.length());
+	}
+
+	public static Block getFloor(Location location, int maxdistance) {
+		Block startblock = location.getBlock();
+		Block solidblock = null;
+		boolean air = false;
+		for (int i = -maxdistance; i < maxdistance; i++) {
+			Block block = startblock.getRelative(BlockFace.UP, i);
+			if (isTransparent(block)) {
+				if (solidblock != null) {
+					if (air) {
+						return block.getRelative(BlockFace.DOWN);
+					}
+					air = true;
+				} else {
+					air = false;
+				}
+			} else {
+				solidblock = block;
+				air = false;
+			}
+		}
+		return null;
 	}
 
 	public static Player getKiller(Player player) {
@@ -41,8 +85,9 @@ public class Tools {
 		Vector direction = player.getEyeLocation().getDirection().normalize();
 		for (DeathLocation location : DeathLocation.getDeathLocations()) {
 			Location loc = location.getDeathLocation();
-			if (!loc.getWorld().equals(player.getWorld()))
+			if (!loc.getWorld().equals(player.getWorld())) {
 				continue;
+			}
 			if (loc.distance(origin) < detectiveRange
 					&& loc.distance(origin) < longestr
 					&& getDistanceFromLine(direction, origin, loc) < 2
@@ -79,27 +124,6 @@ public class Tools {
 		return target;
 	}
 
-	public static double getDistanceFromLine(Vector line, Location pointonline,
-			Location point) {
-
-		Vector AP = new Vector();
-		double Ax, Ay, Az;
-		Ax = pointonline.getX();
-		Ay = pointonline.getY();
-		Az = pointonline.getZ();
-
-		double Px, Py, Pz;
-		Px = point.getX();
-		Py = point.getY();
-		Pz = point.getZ();
-
-		AP.setX(Px - Ax);
-		AP.setY(Py - Ay);
-		AP.setZ(Pz - Az);
-
-		return (AP.crossProduct(line).length()) / (line.length());
-	}
-
 	public static Player getTargetPlayer(Player player, int range) {
 		double longestr = range + 1;
 		Player target = null;
@@ -116,8 +140,9 @@ public class Tools {
 							.getLocation().distance(
 									origin.clone().add(
 											direction.clone().multiply(-1)))) {
-				if (!player.canSee((Player) entity))
+				if (!player.canSee((Player) entity)) {
 					continue;
+				}
 				target = (Player) entity;
 
 				longestr = entity.getLocation().distance(origin);
@@ -126,27 +151,28 @@ public class Tools {
 		return target;
 	}
 
-	public static Block getFloor(Location location, int maxdistance) {
-		Block startblock = location.getBlock();
-		Block solidblock = null;
-		boolean air = false;
-		for (int i = -maxdistance; i < maxdistance; i++) {
-			Block block = startblock.getRelative(BlockFace.UP, i);
-			if (isTransparent(block)) {
-				if (solidblock != null) {
-					if (air) {
-						return block.getRelative(BlockFace.DOWN);
-					}
-					air = true;
-				} else {
-					air = false;
-				}
-			} else {
-				solidblock = block;
-				air = false;
-			}
+	/**
+	 * Returns true if player1 is behind player2
+	 * 
+	 * @param player1
+	 * @param player2
+	 * @return
+	 */
+	public static boolean isBehind(Player player1, Player player2) {
+		Vector v1 = player1.getEyeLocation().getDirection();
+		v1.setY(0);
+		v1.normalize();
+
+		Vector v2 = player2.getEyeLocation().getDirection();
+		v2.setY(0);
+		v2.normalize();
+
+		double dot = v1.dot(v2);
+		if (dot > 0) {
+			return true;
 		}
-		return null;
+
+		return false;
 	}
 
 	public static boolean isSolid(Block block) {
@@ -155,6 +181,14 @@ public class Tools {
 
 	public static boolean isTransparent(Block block) {
 		return Arrays.asList(nonOpaque).contains(block.getTypeId());
+	}
+
+	public static <T> void verbose(T something) {
+		if (something == null) {
+			System.out.println("null");
+		} else {
+			System.out.println(something.toString());
+		}
 	}
 
 	/**
@@ -185,29 +219,6 @@ public class Tools {
 		} else {
 			return axis[Math.round(yaw / 90f) & 0x3];
 		}
-	}
-
-	/**
-	 * Returns true if player1 is behind player2
-	 * 
-	 * @param player1
-	 * @param player2
-	 * @return
-	 */
-	public static boolean isBehind(Player player1, Player player2) {
-		Vector v1 = player1.getEyeLocation().getDirection();
-		v1.setY(0);
-		v1.normalize();
-
-		Vector v2 = player2.getEyeLocation().getDirection();
-		v2.setY(0);
-		v2.normalize();
-
-		double dot = v1.dot(v2);
-		if (dot > 0)
-			return true;
-
-		return false;
 	}
 
 }

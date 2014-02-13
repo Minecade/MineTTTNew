@@ -2,6 +2,8 @@ package src.main.java.de.orion304.ttt.main;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
@@ -49,11 +51,11 @@ public class FileManager {
 	private static final String SQLHostnameLabel = SQLLabel + ".hostname";
 	private static final String SQLPortLabel = SQLLabel + ".port";
 
-	private FileConfiguration locations = new YamlConfiguration();
+	private final FileConfiguration locations = new YamlConfiguration();
 	private FileConfiguration players = new YamlConfiguration();
-	private FileConfiguration config = new YamlConfiguration();
-	private File locationsFile, playersFile, configFile;
-	private MineTTT plugin;
+	private final FileConfiguration config = new YamlConfiguration();
+	private final File locationsFile, playersFile, configFile;
+	private final MineTTT plugin;
 
 	public static int minimumNumberOfPlayers = 24; //
 	public static long preparationTime = 15 * 1000L; //
@@ -80,158 +82,28 @@ public class FileManager {
 	 * @return FileManager instance
 	 */
 	public FileManager(MineTTT instance) {
-		plugin = instance;
+		this.plugin = instance;
 		File folder = instance.getDataFolder();
-		locationsFile = new File(folder, "locations.yml");
-		playersFile = new File(folder, "players.yml");
-		configFile = new File(folder, "config.yml");
+		this.locationsFile = new File(folder, "locations.yml");
+		this.playersFile = new File(folder, "players.yml");
+		this.configFile = new File(folder, "config.yml");
 
-		// Make the folder containing these hard files, if necessary
-		if (!instance.getDataFolder().exists()) {
-			instance.getDataFolder().mkdir();
-		}
-
-		// Load all the arena locations, or create the file that stores them if
-		// there are none.
-		if (locationsFile.exists()) {
-			try {
-				locations.load(locationsFile);
-			} catch (IOException | InvalidConfigurationException e) {
-				e.printStackTrace();
-			}
-		} else {
-			try {
-				locationsFile.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		// Load all saved players, or make the files that stores them if there
-		// are none.
-		if (playersFile.exists()) {
-			try {
-				players.load(playersFile);
-				getSavedPlayers();
-			} catch (IOException | InvalidConfigurationException e) {
-				e.printStackTrace();
-			}
-		} else {
-			try {
-				playersFile.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		// Load the configuration for the plugin, or create the file that stores
-		// it if there is none.
-		if (configFile.exists()) {
-			try {
-				config.load(configFile);
-				loadConfigProperties();
-			} catch (IOException | InvalidConfigurationException e) {
-				e.printStackTrace();
-			}
-		} else {
-			try {
-				configFile.createNewFile();
-				saveConfigProperties();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		load();
+		loadPlayers();
 	}
 
-	private void loadConfigProperties() {
-		minimumNumberOfPlayers = config.getInt(MinimumNumberOfPlayersLabel,
-				minimumNumberOfPlayers);
-		preparationTime = config.getLong(PreparationTimeLabel, preparationTime);
-		detectiveRange = config.getDouble(DetectiveRangeLabel, detectiveRange);
-		compassDuration = config.getLong(CompassDurationLabel, compassDuration);
-		percentTraitors = config.getDouble(PercentTraitorsLabel,
-				percentTraitors);
-		percentDetectives = config.getDouble(PercentDetectivesLabel,
-				percentDetectives);
-		karmaThreshold = config.getInt(KarmaThresholdLabel, karmaThreshold);
-		banDuration = config.getLong(BanDurationLabel, banDuration);
-		chatItemCooldown = config.getLong(ChatItemCooldownLabel,
-				chatItemCooldown);
-		traitorColor = getChatColor(TraitorColorLabel, traitorColor);
-		innocentColor = getChatColor(InnocentColorLabel, innocentColor);
-		detectiveColor = getChatColor(DetectiveColorLabel, detectiveColor);
-		spectatorColor = getChatColor(SpectatorColorLabel, spectatorColor);
-		SQLusername = config.getString(SQLUsernameLabel, SQLusername);
-		SQLpassword = config.getString(SQLPasswordLabel, SQLpassword);
-		SQLdatabaseName = config.getString(SQLDatabaseNameLabel,
-				SQLdatabaseName);
-		SQLhostname = config.getString(SQLHostnameLabel, SQLhostname);
-		SQLport = config.getInt(SQLPortLabel, SQLport);
-		TTTPlayer.loadColors();
-		saveConfig();
-	}
-
-	private ChatColor getChatColor(String label, ChatColor defaultColor) {
-		String color = config.getString(label, defaultColor.name());
-		ChatColor result = defaultColor;
-		try {
-			result = ChatColor.valueOf(color);
-		} catch (IllegalArgumentException e) {
-			config.set(label, defaultColor.name());
-		}
-		return result;
-	}
-
-	private void saveConfig() {
-		try {
-			config.save(configFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void saveConfigProperties() {
-		config.set(MinimumNumberOfPlayersLabel, minimumNumberOfPlayers);
-		config.set(PreparationTimeLabel, preparationTime);
-		config.set(DetectiveRangeLabel, detectiveRange);
-		config.set(CompassDurationLabel, compassDuration);
-		config.set(PercentTraitorsLabel, percentTraitors);
-		config.set(PercentDetectivesLabel, percentDetectives);
-		config.set(KarmaThresholdLabel, karmaThreshold);
-		config.set(BanDurationLabel, banDuration);
-		config.set(ChatItemCooldownLabel, chatItemCooldown);
-		config.set(TraitorColorLabel, traitorColor.name());
-		config.set(InnocentColorLabel, innocentColor.name());
-		config.set(DetectiveColorLabel, detectiveColor.name());
-		config.set(SpectatorColorLabel, spectatorColor.name());
-		config.set(SQLHostnameLabel, SQLhostname);
-		config.set(SQLPortLabel, SQLport);
-		config.set(SQLUsernameLabel, SQLusername);
-		config.set(SQLPasswordLabel, SQLpassword);
-		config.set(SQLDatabaseNameLabel, SQLdatabaseName);
-		saveConfig();
-	}
-
-	public void save() {
-		try {
-			locations.save(locationsFile);
-			players.save(playersFile);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	public ConcurrentHashMap<String, Location> getArenaLocations() {
-		ConcurrentHashMap<String, Location> locs = new ConcurrentHashMap<>();
-		for (String key : locations.getKeys(false)) {
+	public ConcurrentHashMap<String, ChatColor> getArenaColors() {
+		ConcurrentHashMap<String, ChatColor> colors = new ConcurrentHashMap<>();
+		for (String key : this.locations.getKeys(false)) {
 			if (!key.equalsIgnoreCase("lobby")) {
-				Location location = getArenaLocation(key);
-				if (location != null)
-					locs.put(key, location);
+				ChatColor color = getColor(key);
+
+				if (color != null) {
+					colors.put(key, color);
+				}
 			}
 		}
-		return locs;
+		return colors;
 
 	}
 
@@ -245,25 +117,287 @@ public class FileManager {
 		String zProperty = ConfigProperty.getProperty(name,
 				ConfigProperty.LOCATION_Z);
 
-		String worldname = locations.getString(worldProperty, null);
-		double x = locations.getDouble(xProperty, 0);
-		double y = locations.getDouble(yProperty, 0);
-		double z = locations.getDouble(zProperty, 0);
+		String worldname = this.locations.getString(worldProperty, null);
+		double x = this.locations.getDouble(xProperty, 0);
+		double y = this.locations.getDouble(yProperty, 0);
+		double z = this.locations.getDouble(zProperty, 0);
 
-		if (worldname == null)
+		if (worldname == null) {
 			return null;
+		}
 
 		World world = Bukkit.getWorld(worldname);
 
-		if (world == null)
+		if (world == null) {
 			return null;
+		}
 		return new Location(world, x, y, z);
 	}
 
-	public void setArenaLocations(ConcurrentHashMap<String, Location> locations) {
-		for (String key : locations.keySet()) {
-			setArenaLocation(key, locations.get(key));
+	public ConcurrentHashMap<String, Location> getArenaLocations() {
+		ConcurrentHashMap<String, Location> locs = new ConcurrentHashMap<>();
+		for (String key : this.locations.getKeys(false)) {
+			if (!key.equalsIgnoreCase("lobby")) {
+				ChatColor color = getColor(key);
+				Location location = getArenaLocation(key);
+				if (location != null) {
+					locs.put(color + key, location);
+				}
+
+			}
 		}
+		return locs;
+
+	}
+
+	public ConcurrentHashMap<String, List<String>> getArenaLores() {
+		ConcurrentHashMap<String, List<String>> lores = new ConcurrentHashMap<>();
+		for (String key : this.locations.getKeys(false)) {
+			if (!key.equalsIgnoreCase("lobby")) {
+				ChatColor color = getColor(key);
+				List<String> lore = getLore(key);
+				if (lore != null) {
+					lores.put(color + key, lore);
+				}
+			}
+		}
+		return lores;
+
+	}
+
+	private ChatColor getChatColor(String label, ChatColor defaultColor) {
+		String color = this.config.getString(label, defaultColor.name());
+		ChatColor result = defaultColor;
+		try {
+			result = ChatColor.valueOf(color);
+		} catch (IllegalArgumentException e) {
+			this.config.set(label, defaultColor.name());
+		}
+		return result;
+	}
+
+	private ChatColor getColor(String key) {
+		if (this.locations.contains(key + ".color")) {
+			String string = this.locations.getString(key + ".color", "WHITE");
+			ChatColor result = ChatColor.WHITE;
+			try {
+				result = ChatColor.valueOf(string);
+				return result;
+			} catch (IllegalArgumentException e) {
+				this.locations.set(key + ".color", "WHITE");
+				return ChatColor.WHITE;
+			}
+		}
+		ChatColor color = ChatColor.WHITE;
+		this.locations.set(key + ".color", color.name());
+		return color;
+	}
+
+	public Location getLobbyLocation() {
+		String worldname = this.locations.getString(
+				ConfigProperty.LOBBY_LOCATION_WORLD, null);
+		double x = this.locations.getDouble(ConfigProperty.LOBBY_LOCATION_X, 0);
+		double y = this.locations.getDouble(ConfigProperty.LOBBY_LOCATION_Y, 0);
+		double z = this.locations.getDouble(ConfigProperty.LOBBY_LOCATION_Z, 0);
+
+		if (worldname == null) {
+			return null;
+		}
+
+		World world = Bukkit.getWorld(worldname);
+
+		if (world == null) {
+			return null;
+		}
+		return new Location(world, x, y, z);
+	}
+
+	private List<String> getLore(String key) {
+		if (this.locations.contains(key + ".lore")) {
+			return this.locations.getStringList(key + ".lore");
+		}
+		List<String> lore = new ArrayList<>();
+		lore.add("Write lore here");
+		this.locations.set(key + ".lore", lore);
+		return lore;
+	}
+
+	public void getSavedPlayers() {
+		String name;
+		int karma;
+		long bandate, banlength;
+		for (String player : this.players.getKeys(false)) {
+			name = this.players.getString(player + ".name", null);
+			karma = this.players.getInt(player + ".karma", 0);
+			bandate = this.players.getLong(player + ".bandate", 0);
+			banlength = this.players.getLong(player + ".banlength", 0);
+
+			if (name != null) {
+				new TTTPlayer(name, karma, bandate, banlength);
+			}
+
+		}
+	}
+
+	void load() {
+		// Make the folder containing these hard files, if necessary
+		if (!this.plugin.getDataFolder().exists()) {
+			this.plugin.getDataFolder().mkdir();
+		}
+
+		// Load all the arena locations, or create the file that stores them if
+		// there are none.
+		if (this.locationsFile.exists()) {
+			try {
+				this.locations.load(this.locationsFile);
+			} catch (IOException | InvalidConfigurationException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				this.locationsFile.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		// Load the configuration for the plugin, or create the file that stores
+		// it if there is none.
+		if (this.configFile.exists()) {
+			try {
+				this.config.load(this.configFile);
+				loadConfigProperties();
+			} catch (IOException | InvalidConfigurationException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				this.configFile.createNewFile();
+				saveConfigProperties();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void loadConfigProperties() {
+		minimumNumberOfPlayers = this.config.getInt(
+				MinimumNumberOfPlayersLabel, minimumNumberOfPlayers);
+		preparationTime = this.config.getLong(PreparationTimeLabel,
+				preparationTime);
+		detectiveRange = this.config.getDouble(DetectiveRangeLabel,
+				detectiveRange);
+		compassDuration = this.config.getLong(CompassDurationLabel,
+				compassDuration);
+		percentTraitors = this.config.getDouble(PercentTraitorsLabel,
+				percentTraitors);
+		percentDetectives = this.config.getDouble(PercentDetectivesLabel,
+				percentDetectives);
+		karmaThreshold = this.config
+				.getInt(KarmaThresholdLabel, karmaThreshold);
+		banDuration = this.config.getLong(BanDurationLabel, banDuration);
+		chatItemCooldown = this.config.getLong(ChatItemCooldownLabel,
+				chatItemCooldown);
+		traitorColor = getChatColor(TraitorColorLabel, traitorColor);
+		innocentColor = getChatColor(InnocentColorLabel, innocentColor);
+		detectiveColor = getChatColor(DetectiveColorLabel, detectiveColor);
+		spectatorColor = getChatColor(SpectatorColorLabel, spectatorColor);
+		SQLusername = this.config.getString(SQLUsernameLabel, SQLusername);
+		SQLpassword = this.config.getString(SQLPasswordLabel, SQLpassword);
+		SQLdatabaseName = this.config.getString(SQLDatabaseNameLabel,
+				SQLdatabaseName);
+		SQLhostname = this.config.getString(SQLHostnameLabel, SQLhostname);
+		SQLport = this.config.getInt(SQLPortLabel, SQLport);
+		TTTPlayer.loadColors();
+		saveConfig();
+	}
+
+	private void loadPlayers() {
+		// Make the folder containing these hard files, if necessary
+		if (!this.plugin.getDataFolder().exists()) {
+			this.plugin.getDataFolder().mkdir();
+		}
+
+		// Load all saved players, or make the files that stores them if there
+		// are none.
+		if (this.playersFile.exists()) {
+			try {
+				this.players.load(this.playersFile);
+				getSavedPlayers();
+			} catch (IOException | InvalidConfigurationException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				this.playersFile.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public void save() {
+		try {
+			this.locations.save(this.locationsFile);
+			this.players.save(this.playersFile);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void saveConfig() {
+		try {
+			this.config.save(this.configFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void saveConfigProperties() {
+		this.config.set(MinimumNumberOfPlayersLabel, minimumNumberOfPlayers);
+		this.config.set(PreparationTimeLabel, preparationTime);
+		this.config.set(DetectiveRangeLabel, detectiveRange);
+		this.config.set(CompassDurationLabel, compassDuration);
+		this.config.set(PercentTraitorsLabel, percentTraitors);
+		this.config.set(PercentDetectivesLabel, percentDetectives);
+		this.config.set(KarmaThresholdLabel, karmaThreshold);
+		this.config.set(BanDurationLabel, banDuration);
+		this.config.set(ChatItemCooldownLabel, chatItemCooldown);
+		this.config.set(TraitorColorLabel, traitorColor.name());
+		this.config.set(InnocentColorLabel, innocentColor.name());
+		this.config.set(DetectiveColorLabel, detectiveColor.name());
+		this.config.set(SpectatorColorLabel, spectatorColor.name());
+		this.config.set(SQLHostnameLabel, SQLhostname);
+		this.config.set(SQLPortLabel, SQLport);
+		this.config.set(SQLUsernameLabel, SQLusername);
+		this.config.set(SQLPasswordLabel, SQLpassword);
+		this.config.set(SQLDatabaseNameLabel, SQLdatabaseName);
+		saveConfig();
+	}
+
+	public void savePlayers() {
+		this.players = new YamlConfiguration();
+		String name, key;
+		int karma;
+		long banDate, banLength;
+		Object value;
+		for (TTTPlayer player : TTTPlayer.getPlayers()) {
+			name = player.getName();
+			karma = player.getKarma();
+			banDate = player.getBanDate();
+			banLength = player.getBanLength();
+
+			String[] keys = { "name", "karma", "bandate", "banlength" };
+			Object[] values = { name, karma, banDate, banLength };
+
+			for (int i = 0; i < keys.length; i++) {
+				key = name + "." + keys[i];
+				value = values[i];
+				this.players.set(key, value);
+			}
+		}
+		save();
 	}
 
 	public void setArenaLocation(String name, Location location) {
@@ -281,11 +415,22 @@ public class FileManager {
 		double y = location.getY();
 		double z = location.getZ();
 
-		locations.set(worldProperty, worldname);
-		locations.set(xProperty, x);
-		locations.set(yProperty, y);
-		locations.set(zProperty, z);
+		this.locations.set(worldProperty, worldname);
+		this.locations.set(xProperty, x);
+		this.locations.set(yProperty, y);
+		this.locations.set(zProperty, z);
+
+		this.locations.set(name + ".color", ChatColor.WHITE);
+		List<String> lore = new ArrayList<>();
+		lore.add("Write lore here.");
+		this.locations.set(name + ".lore", lore);
 		save();
+	}
+
+	public void setArenaLocations(ConcurrentHashMap<String, Location> locations) {
+		for (String key : locations.keySet()) {
+			setArenaLocation(key, locations.get(key));
+		}
 	}
 
 	public void setLobbyLocation(Location location) {
@@ -294,70 +439,12 @@ public class FileManager {
 		double y = location.getY();
 		double z = location.getZ();
 
-		locations.set(ConfigProperty.LOBBY_LOCATION_WORLD, worldname);
-		locations.set(ConfigProperty.LOBBY_LOCATION_X, x);
-		locations.set(ConfigProperty.LOBBY_LOCATION_Y, y);
-		locations.set(ConfigProperty.LOBBY_LOCATION_Z, z);
+		this.locations.set(ConfigProperty.LOBBY_LOCATION_WORLD, worldname);
+		this.locations.set(ConfigProperty.LOBBY_LOCATION_X, x);
+		this.locations.set(ConfigProperty.LOBBY_LOCATION_Y, y);
+		this.locations.set(ConfigProperty.LOBBY_LOCATION_Z, z);
 		save();
 
-	}
-
-	public Location getLobbyLocation() {
-		String worldname = locations.getString(
-				ConfigProperty.LOBBY_LOCATION_WORLD, null);
-		double x = locations.getDouble(ConfigProperty.LOBBY_LOCATION_X, 0);
-		double y = locations.getDouble(ConfigProperty.LOBBY_LOCATION_Y, 0);
-		double z = locations.getDouble(ConfigProperty.LOBBY_LOCATION_Z, 0);
-
-		if (worldname == null)
-			return null;
-
-		World world = Bukkit.getWorld(worldname);
-
-		if (world == null)
-			return null;
-		return new Location(world, x, y, z);
-	}
-
-	public void getSavedPlayers() {
-		String name;
-		int karma;
-		long bandate, banlength;
-		for (String player : players.getKeys(false)) {
-			name = players.getString(player + ".name", null);
-			karma = players.getInt(player + ".karma", 0);
-			bandate = players.getLong(player + ".bandate", 0);
-			banlength = players.getLong(player + ".banlength", 0);
-
-			if (name != null) {
-				new TTTPlayer(name, karma, bandate, banlength);
-			}
-
-		}
-	}
-
-	public void savePlayers() {
-		players = new YamlConfiguration();
-		String name, key;
-		int karma;
-		long banDate, banLength;
-		Object value;
-		for (TTTPlayer player : TTTPlayer.getPlayers()) {
-			name = player.getName();
-			karma = player.getKarma();
-			banDate = player.getBanDate();
-			banLength = player.getBanLength();
-
-			String[] keys = { "name", "karma", "bandate", "banlength" };
-			Object[] values = { name, karma, banDate, banLength };
-
-			for (int i = 0; i < keys.length; i++) {
-				key = name + "." + keys[i];
-				value = values[i];
-				players.set(key, value);
-			}
-		}
-		save();
 	}
 
 }

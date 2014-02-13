@@ -1,5 +1,7 @@
 package src.main.java.de.orion304.ttt.main;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,6 +20,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Scoreboard;
 
+import src.main.java.de.orion304.ttt.enderbar.BarAPI;
 import src.main.java.de.orion304.ttt.players.DetectiveCompass;
 import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
@@ -31,8 +34,10 @@ public class MainThread implements Runnable {
 	private final Server server;
 
 	// Initialization variables
-	private int playerThreshold = FileManager.minimumNumberOfPlayers;
+	public int playerThreshold = FileManager.minimumNumberOfPlayers;
 	private ConcurrentHashMap<String, Location> arenaLocations = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<String, List<String>> arenaLores = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<String, ChatColor> arenaColors = new ConcurrentHashMap<>();
 	private Location arenaLocation, lobbyLocation;
 	private final double radius = 4.5;
 	private final Random random;
@@ -50,6 +55,8 @@ public class MainThread implements Runnable {
 		this.playerThreshold = FileManager.minimumNumberOfPlayers;
 
 		this.arenaLocations = this.plugin.fileManager.getArenaLocations();
+		this.arenaColors = this.plugin.fileManager.getArenaColors();
+		this.arenaLores = this.plugin.fileManager.getArenaLores();
 		this.lobbyLocation = this.plugin.fileManager.getLobbyLocation();
 
 		if (this.lobbyLocation == null) {
@@ -74,7 +81,7 @@ public class MainThread implements Runnable {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
 			if (Tplayer.getTeam() != PlayerTeam.NONE) {
-				player.getInventory().clear();
+				Tools.clearInventory(player);
 			}
 		}
 	}
@@ -98,8 +105,8 @@ public class MainThread implements Runnable {
 			endMessage += " The detectives were victorious!";
 		}
 
-		if (forced) {
-			endMessage = ChatColor.RED + "The game was ended by an admin.";
+		if (!forced) {
+			Bukkit.broadcastMessage(endMessage);
 		}
 		TTTPlayer.distributeCoinsToAll();
 		TempBlock.revertAll();
@@ -107,18 +114,27 @@ public class MainThread implements Runnable {
 		clearInventories();
 		TTTPlayer.dealKarma();
 		TTTPlayer.reset();
-		Bukkit.broadcastMessage(endMessage);
 		TTTPlayer.showAllPreGameScoreboards();
+		Claymore.reset();
 
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			teleportPlayer(player, this.lobbyLocation);
 			player.setGameMode(GameMode.ADVENTURE);
+			Tools.clearInventory(player);
+			BarAPI.removeBar(player);
 		}
 
 	}
 
 	public void findKiller(Player detective, Player killer) {
 		new DetectiveCompass(detective, killer);
+	}
+
+	public ChatColor getArenaColor(String key) {
+		if (this.arenaColors.containsKey(key)) {
+			return this.arenaColors.get(key);
+		}
+		return ChatColor.WHITE;
 	}
 
 	public Location getArenaLocation(String name) {
@@ -130,6 +146,15 @@ public class MainThread implements Runnable {
 
 	public ConcurrentHashMap<String, Location> getArenaLocations() {
 		return this.arenaLocations;
+	}
+
+	public List<String> getArenaLore(String key) {
+		if (this.arenaLores.containsKey(key)) {
+			return this.arenaLores.get(key);
+		}
+		List<String> lore = new ArrayList<>();
+		lore.add("There was an error in retrieving what should be written here.");
+		return lore;
 	}
 
 	public Location getCurrentArenaLocation() {
@@ -158,12 +183,14 @@ public class MainThread implements Runnable {
 						&& Tplayer.canSpectate()) {
 					player.setGameMode(GameMode.CREATIVE);
 					player.closeInventory();
-					player.getInventory().clear();
+					Tools.clearInventory(player);
 					Tplayer.resetPlayer();
 					TTTPlayer.allRegisterPlayer(Tplayer);
 					Tplayer.registerAllPlayers();
 					player.sendMessage(FileManager.spectatorColor
 							+ "You are now spectating.");
+					BarAPI.setMessage(player, FileManager.spectatorColor
+							+ "You are spectating.");
 					teleportPlayer(player, this.arenaLocation);
 				}
 			}
@@ -194,6 +221,8 @@ public class MainThread implements Runnable {
 	@Override
 	public void run() {
 		this.time = System.currentTimeMillis();
+		this.plugin.chestHandler.handleChests();
+		Claymore.handleClaymores();
 
 		switch (this.state) {
 		case OFF:
@@ -243,6 +272,8 @@ public class MainThread implements Runnable {
 
 		if (!this.plugin.teamHandler.initializeTeams()) {
 			endGame(true);
+			Bukkit.broadcastMessage(ChatColor.RED
+					+ "The game cannot start because either there are no longer enough players, or too few chose not to spectate.");
 			return;
 		}
 
@@ -256,21 +287,25 @@ public class MainThread implements Runnable {
 				continue;
 			}
 
+			String message;
 			switch (team) {
 			case INNOCENT:
-				player.sendMessage(FileManager.innocentColor
-						+ "You are an INNOCENT!");
+				message = FileManager.innocentColor + "You are an INNOCENT!";
+				player.sendMessage(message);
+				BarAPI.setMessage(p, message);
 				player.showKarma();
 				break;
 			case DETECTIVE:
-				player.sendMessage(FileManager.detectiveColor
-						+ "You are a DETECTIVE!");
+				message = FileManager.detectiveColor + "You are a DETECTIVE!";
+				player.sendMessage(message);
+				BarAPI.setMessage(p, message);
 				player.showKarma();
 				p.getInventory().setItem(8, new ItemStack(Material.COMPASS, 1));
 				break;
 			case TRAITOR:
-				player.sendMessage(FileManager.traitorColor
-						+ "You are a TRAITOR!");
+				message = FileManager.traitorColor + "You are a TRAITOR!";
+				player.sendMessage(message);
+				BarAPI.setMessage(p, message);
 				player.showKarma();
 				break;
 			default:
