@@ -16,27 +16,67 @@ public class CommandHandler {
 
 	MineTTT plugin;
 
+	/**
+	 * Creates a new CommandHandler object, which handles all command processes
+	 * for MineTTT.
+	 * 
+	 * @param instance
+	 */
 	public CommandHandler(MineTTT instance) {
 		this.plugin = instance;
 	}
 
+	/**
+	 * Forces the game to end.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
 	private void forceEnd(Player player, String[] args) {
 		this.plugin.thread.endGame(true);
 		Bukkit.broadcastMessage(ChatColor.RED + "An admin has ended the game.");
 	}
 
+	/**
+	 * Forces the game to begin its preparation stage.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
 	private void forceStart(Player player, String[] args) {
 		this.plugin.thread.startPreparations();
 	}
 
+	/**
+	 * Prints the status of the game.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
 	private void getStatus(Player player, String[] args) {
-		for (Player p : Bukkit.getOnlinePlayers()) {
-			Tools.verbose(p.getName());
-		}
 		sendMessage(player, "The status of MineTTT is: "
 				+ this.plugin.thread.getGameStatus().toString());
 	}
 
+	/**
+	 * Handle the command sent by the sender.
+	 * 
+	 * @param sender
+	 *            The command sender.
+	 * @param cmd
+	 *            The command.
+	 * @param label
+	 *            The command's label.
+	 * @param args
+	 *            The arguments of the command.
+	 * @return True if the command was valid.
+	 */
 	public boolean handleCommand(CommandSender sender, Command cmd,
 			String label, String[] args) {
 		String name = cmd.getName();
@@ -88,10 +128,22 @@ public class CommandHandler {
 		return false;
 	}
 
+	/**
+	 * Forces the server to load the config and location files.
+	 */
 	private void load() {
 		this.plugin.fileManager.load();
 	}
 
+	/**
+	 * Sends a message to the player if it is a player, and prints the message
+	 * to the console if player is null.
+	 * 
+	 * @param player
+	 *            The player.
+	 * @param message
+	 *            The message to send/print.
+	 */
 	private void sendMessage(Player player, String message) {
 		if (player == null) {
 			Tools.verbose(message);
@@ -100,6 +152,14 @@ public class CommandHandler {
 		}
 	}
 
+	/**
+	 * Sets an arena location.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
 	private void setArenaLocation(Player player, String[] args) {
 		String commandLineUsage = "Command line usage: setarenalocation <arenaname> <worldname> <x> <y> <z>";
 		String playerUsage = "Usage: setarenalocation <arenaname> [worldname] [x] [y] [z]";
@@ -159,6 +219,14 @@ public class CommandHandler {
 		sendMessage(player, playerUsage);
 	}
 
+	/**
+	 * Sets the lobby's location.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
 	private void setLobbyLocation(Player player, String[] args) {
 		String commandLineUsage = "Command line usage: setlobbylocation <worldname> <x> <y> <z>";
 		String playerUsage = "Usage: setlobbylocation [worldname] [x] [y] [z]";
@@ -218,11 +286,27 @@ public class CommandHandler {
 		sendMessage(player, playerUsage);
 	}
 
+	/**
+	 * Opens the shop for the player.
+	 * 
+	 * @param player
+	 *            The player to open the shop for.
+	 */
 	private void shop(Player player) {
 		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
 		Tplayer.openShop();
 	}
 
+	/**
+	 * Teleports the player to the location.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 * @param location
+	 *            The name of the location.
+	 */
 	private void teleportTo(Player player, String[] args, String location) {
 		ArrayList<Player> players = new ArrayList<>();
 		String playerlist = "";
@@ -288,6 +372,14 @@ public class CommandHandler {
 				+ playerlist);
 	}
 
+	/**
+	 * Teleports the player to an arena.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
 	private void teleportToArena(Player player, String[] args) {
 		if (args.length == 0) {
 			sendMessage(player, "You must specific which arena.");
@@ -296,11 +388,27 @@ public class CommandHandler {
 		teleportTo(player, args, args[0]);
 	}
 
+	/**
+	 * Teleports the player to the lobby.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
 	private void teleportToLobby(Player player, String[] args) {
 		teleportTo(player, args, "Lobby");
 
 	}
 
+	/**
+	 * Forces the server to update the player's account from Minecade.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
 	private void update(Player player, String[] args) {
 		if (player == null) {
 			sendMessage(player, "This command cannot be used from the console.");

@@ -19,10 +19,23 @@ public class ChestHandler {
 	private final long respawnDuration = 15 * 1000L;
 	private final long duration = 5 * 1000L;
 
+	/**
+	 * Creats a new ChestHandler object, for handling the opening, closing,
+	 * populating and respawning of chests in the game.
+	 * 
+	 * @param instance
+	 *            The MineTTT instance.
+	 */
 	public ChestHandler(MineTTT instance) {
 		this.plugin = instance;
 	}
 
+	/**
+	 * Sets the chest to despawn, and allows it to respawn at a set time later.
+	 * 
+	 * @param chest
+	 *            The chest to despawn.
+	 */
 	private void despawnChest(Chest chest) {
 		chest.getInventory().clear();
 		chest.getBlock().setType(Material.AIR);
@@ -30,10 +43,20 @@ public class ChestHandler {
 		this.chests.put(chest, -System.currentTimeMillis());
 	}
 
+	/**
+	 * Returns a random amount of Arrows.
+	 * 
+	 * @return A random stack of arrows.
+	 */
 	private ItemStack getAmmunition() {
 		return new ItemStack(Material.ARROW, this.random.nextInt(64));
 	}
 
+	/**
+	 * Gets the number of items to be generated inside the chest.
+	 * 
+	 * @return The number of generated items.
+	 */
 	private int getNumberOfItems() {
 		double choice = this.random.nextDouble();
 		if (choice < .1) {
@@ -49,6 +72,11 @@ public class ChestHandler {
 		}
 	}
 
+	/**
+	 * Gets a random armor, was originally all types, now only leather.
+	 * 
+	 * @return A random piece of armor with some durability.
+	 */
 	private ItemStack getRandomArmor() {
 		String[] slots = { "CHESTPLATE", "HELMET", "LEGGINGS", "BOOTS" };
 		String slot = slots[this.random.nextInt(slots.length)];
@@ -72,6 +100,11 @@ public class ChestHandler {
 		return item;
 	}
 
+	/**
+	 * Gets a random item.
+	 * 
+	 * @return A random item for the chest to have.
+	 */
 	private ItemStack getRandomItem() {
 		double choice = this.random.nextDouble();
 		if (choice < .5) {
@@ -83,6 +116,11 @@ public class ChestHandler {
 		}
 	}
 
+	/**
+	 * Gets all random items the chest will be populated with.
+	 * 
+	 * @return An array of items.
+	 */
 	private ItemStack[] getRandomItems() {
 		List<ItemStack> items = new ArrayList<ItemStack>();
 		for (int i = 0; i < getNumberOfItems(); i++) {
@@ -91,6 +129,11 @@ public class ChestHandler {
 		return items.toArray(new ItemStack[items.size()]);
 	}
 
+	/**
+	 * Returns a random weapon with some durability.
+	 * 
+	 * @return A random weapon.
+	 */
 	private ItemStack getRandomWeapon() {
 		double choice = this.random.nextDouble();
 		ItemStack item;
@@ -107,6 +150,11 @@ public class ChestHandler {
 		return item;
 	}
 
+	/**
+	 * Called by the listener, this handles the players' opening of chests.
+	 * 
+	 * @param chest
+	 */
 	public void handleChest(Chest chest) {
 		if (this.chests.contains(chest)) {
 			return;
@@ -116,6 +164,10 @@ public class ChestHandler {
 		}
 	}
 
+	/**
+	 * Called by the main thread, this handles all time-sensitive things about
+	 * the chests (despawning, respawning, and waiting).
+	 */
 	public void handleChests() {
 		long time = System.currentTimeMillis();
 		for (Chest chest : this.chests.keySet()) {
@@ -137,6 +189,14 @@ public class ChestHandler {
 		}
 	}
 
+	/**
+	 * As Bukkit doesn't have an isEmpty() method on inventories, this is the
+	 * one I made. Checks if the inventory is empty (all item in it are null).
+	 * 
+	 * @param inventory
+	 *            The inventory to check.
+	 * @return True if all contents are null.
+	 */
 	private boolean isEmpty(Inventory inventory) {
 		for (ItemStack item : inventory.getContents()) {
 			if (item != null) {
@@ -146,6 +206,12 @@ public class ChestHandler {
 		return true;
 	}
 
+	/**
+	 * Populates a chest with random items.
+	 * 
+	 * @param chest
+	 *            The chest to populate.
+	 */
 	private void populateChest(Chest chest) {
 		Inventory inventory = chest.getInventory();
 		if (isEmpty(inventory)) {
@@ -153,6 +219,9 @@ public class ChestHandler {
 		}
 	}
 
+	/**
+	 * Called when a server reload or restarts, forces all chests to respawn.
+	 */
 	public void resetChests() {
 		for (Chest chest : this.chests.keySet()) {
 			long lasttime = this.chests.get(chest);
@@ -163,6 +232,12 @@ public class ChestHandler {
 		this.chests.clear();
 	}
 
+	/**
+	 * Respawns a chest and populates it with items.
+	 * 
+	 * @param chest
+	 *            The chest to respawn.
+	 */
 	private void respawnChest(Chest chest) {
 		chest.update(true);
 		populateChest(chest);

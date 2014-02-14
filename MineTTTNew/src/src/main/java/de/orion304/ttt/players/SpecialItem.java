@@ -15,13 +15,14 @@ import src.main.java.de.orion304.ttt.listeners.PlayerListener;
 
 public class SpecialItem {
 
-	private Material material;
-	private String displayName;
-	private int cost, numberOfUses;
-	private List<String> lore = new ArrayList<>();
-	private Power power;
-	private DamageCause[] sources;
-	private long duration;
+	private final Material material;
+	private final String displayName;
+	private final int cost;
+	private int numberOfUses;
+	private final List<String> lore = new ArrayList<>();
+	private final Power power;
+	private final DamageCause[] sources;
+	private final long duration;
 
 	private int uses;
 	private long starttime;
@@ -55,27 +56,94 @@ public class SpecialItem {
 		this.displayName = displayName;
 		this.cost = cost;
 		this.sources = sources;
-		lore.addAll(Arrays.asList(itemLore));
+		this.lore.addAll(Arrays.asList(itemLore));
 		this.power = power;
 		this.numberOfUses = numberOfUses;
 		this.duration = duration;
 	}
 
-	public ItemStack getItemInShop(Inventory inventory) {
-		ItemStack item = new ItemStack(material, 1);
+	/**
+	 * Checks if an inventory already has an item of this type.
+	 * 
+	 * @param inventory
+	 *            The inventory to check.
+	 * @return True if the inventory has an item of this type.
+	 */
+	public boolean alreadyHas(Inventory inventory) {
+		for (ItemStack item : inventory.getContents()) {
+			if (item == null) {
+				continue;
+			}
+			if (item.getItemMeta() == null) {
+				continue;
+			}
+			if (item.getItemMeta().getDisplayName() == getDisplayName()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Gets the cost of this item (in gold nuggets).
+	 * 
+	 * @return The cost of the item.
+	 */
+	public int getCost() {
+		return this.cost;
+	}
+
+	/**
+	 * Gets the display name of the special item.
+	 * 
+	 * @return The display name.
+	 */
+	public String getDisplayName() {
+		return this.displayName;
+	}
+
+	/**
+	 * Gets the ItemStack that the will go into the player's inventory once the
+	 * SpecialItem is purchased.
+	 * 
+	 * @return The item to go in the player's inventory.
+	 */
+	public ItemStack getItemInInventory() {
+		ItemStack item = new ItemStack(this.material, 1);
 		ItemMeta meta = item.getItemMeta();
-		meta.setDisplayName(displayName);
+		meta.setDisplayName(this.displayName);
 
 		List<String> itemLore = new ArrayList<>();
-		itemLore.addAll(lore);
-		String string = "Costs " + cost + " Golden Nuggets";
+		itemLore.addAll(this.lore);
+		meta.setLore(itemLore);
+		item.setItemMeta(meta);
+		return item;
+	}
+
+	/**
+	 * Gets the ItemStack that represents this special item in a player's
+	 * inventory.
+	 * 
+	 * @param inventory
+	 *            The inventory of the player looking at the shop.
+	 * @return The approriate item to place in the shop.
+	 */
+	public ItemStack getItemInShop(Inventory inventory) {
+		ItemStack item = new ItemStack(this.material, 1);
+		ItemMeta meta = item.getItemMeta();
+		meta.setDisplayName(this.displayName);
+
+		List<String> itemLore = new ArrayList<>();
+		itemLore.addAll(this.lore);
+		String string = "Costs " + this.cost + " Golden Nuggets";
 		String color = ChatColor.RED.toString();
 		if (alreadyHas(inventory)) {
 			string += ChatColor.RESET + color
 					+ " (You may only have 1 at a time)";
 			color = color.toString() + ChatColor.STRIKETHROUGH;
-		} else if (inventory.containsAtLeast(PlayerListener.nugget, cost))
+		} else if (inventory.containsAtLeast(PlayerListener.nugget, this.cost)) {
 			color = ChatColor.GREEN.toString();
+		}
 
 		itemLore.add(0, color + string);
 		meta.setLore(itemLore);
@@ -83,53 +151,42 @@ public class SpecialItem {
 		return item;
 	}
 
-	public ItemStack getItemInInventory() {
-		ItemStack item = new ItemStack(material, 1);
-		ItemMeta meta = item.getItemMeta();
-		meta.setDisplayName(displayName);
-
-		List<String> itemLore = new ArrayList<>();
-		itemLore.addAll(lore);
-		meta.setLore(itemLore);
-		item.setItemMeta(meta);
-		return item;
-	}
-
-	public String getDisplayName() {
-		return displayName;
-	}
-
-	public int getCost() {
-		return cost;
-	}
-
-	public int getUses() {
-		return numberOfUses;
-	}
-
-	public void use() {
-		if (numberOfUses > 0)
-			numberOfUses -= 1;
-	}
-
+	/**
+	 * Gets the Power of the special item.
+	 * 
+	 * @return The power.
+	 */
 	public Power getPower() {
-		return power;
+		return this.power;
 	}
 
-	public boolean alreadyHas(Inventory inventory) {
-		for (ItemStack item : inventory.getContents()) {
-			if (item == null)
-				continue;
-			if (item.getItemMeta() == null)
-				continue;
-			if (item.getItemMeta().getDisplayName() == getDisplayName())
-				return true;
-		}
-		return false;
+	/**
+	 * Gets the maximum number of uses of this item.
+	 * 
+	 * @return The maximum number of uses.
+	 */
+	public int getUses() {
+		return this.numberOfUses;
 	}
 
+	/**
+	 * Checks to see if a DamageCause was a trigger for this item.
+	 * 
+	 * @param cause
+	 *            The damage cause to check.
+	 * @return True if the damage cause is applicable to this item.
+	 */
 	public boolean isCauseApplicable(DamageCause cause) {
-		return Arrays.asList(sources).contains(cause);
+		return Arrays.asList(this.sources).contains(cause);
+	}
+
+	/**
+	 * Uses the item, setting its number of uses to be 1 lower than it is.
+	 */
+	public void use() {
+		if (this.numberOfUses > 0) {
+			this.numberOfUses -= 1;
+		}
 	}
 
 }

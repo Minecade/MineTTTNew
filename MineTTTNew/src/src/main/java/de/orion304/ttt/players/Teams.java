@@ -30,17 +30,26 @@ public class Teams {
 	private final Server server;
 	private final Random random;
 
-	// Constructor. Creates an object which handles players, their teams, and
-	// their initiliazation of teams.
+	/**
+	 * Creates a new Teams instance. Teams now only handles setting teams and
+	 * initializing them.
+	 * 
+	 * @param instance
+	 *            The MineTTT instance.
+	 */
 	public Teams(MineTTT instance) {
 		this.plugin = instance;
 		this.server = Bukkit.getServer();
 		this.random = new Random();
 	}
 
-	// Method which randomly initializes teams, making sure that the proper
-	// number of detectives and traitors are filled, then making the remaining
-	// online players innocents.
+	/**
+	 * Initializes the teams, choosing random players to be traitors, detectives
+	 * and innocents. Returns true if there are enough players to play the game,
+	 * false otherwise.
+	 * 
+	 * @return True if there are enough players to play.
+	 */
 	public boolean initializeTeams() {
 		ArrayList<Player> players = new ArrayList<Player>(
 				Arrays.asList(this.server.getOnlinePlayers()));
@@ -93,6 +102,12 @@ public class Teams {
 
 	}
 
+	/**
+	 * Gets whether the game is over - that is, if the one side no long has
+	 * enough players.
+	 * 
+	 * @return True if the game is over.
+	 */
 	public boolean isGameOver() {
 		if (TTTPlayer.getNumberOfDetectives() == 0
 				&& TTTPlayer.getNumberOfInnocents() == 0) {
@@ -102,62 +117,19 @@ public class Teams {
 		if (TTTPlayer.getNumberOfTraitors() == 0) {
 			return true;
 		}
-		// if (detectives.isEmpty() && innocents.isEmpty())
-		// return true;
-		// if (traitors.isEmpty())
-		// return true;
 		return false;
 	}
 
-	// Sets the player to a specific team. To be certain that no player is ever
-	// on more than one team, it also removes them from the remaining teams.
-	// public void setTeam(String playername, PlayerTeam team) {
-	// switch (team) {
-	// case TRAITOR:
-	// detectives.remove(playername);
-	// innocents.remove(playername);
-	// traitors.add(playername);
-	// break;
-	// case INNOCENT:
-	// detectives.remove(playername);
-	// innocents.add(playername);
-	// traitors.remove(playername);
-	// break;
-	// case DETECTIVE:
-	// detectives.add(playername);
-	// innocents.remove(playername);
-	// traitors.remove(playername);
-	// break;
-	// case NONE:
-	// detectives.remove(playername);
-	// innocents.remove(playername);
-	// traitors.remove(playername);
-	// break;
-	// }
-	// }
-
-	// Again a simple overload.
-	// public PlayerTeam getTeam(Player player) {
-	// return getTeam(player.getName());
-	// }
-
-	// Returns the team of the player. If the player is on no team, return NONE.
-	// public PlayerTeam getTeam(String playername) {
-	// if (traitors.contains(playername))
-	// return PlayerTeam.TRAITOR;
-	// if (detectives.contains(playername))
-	// return PlayerTeam.DETECTIVE;
-	// if (innocents.contains(playername))
-	// return PlayerTeam.INNOCENT;
-	// return PlayerTeam.NONE;
-	// }
-
-	// It is more efficient to store players by their name instead of by their
-	// player object, but is more useful in many situations to interact with
-	// their player objects. This method does the redirection for you.
+	/**
+	 * Sets the team of a player.
+	 * 
+	 * @param player
+	 *            The player to set.
+	 * @param team
+	 *            The team to set the player to.
+	 */
 	public void setTeam(Player player, PlayerTeam team) {
 		TTTPlayer.getTTTPlayer(player).setTeam(team);
-		// setTeam(player.getName(), team);
 	}
 
 }

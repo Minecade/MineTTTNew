@@ -28,12 +28,30 @@ public class Tools {
 
 	private static final double detectiveRange = 5;
 
+	/**
+	 * Clears a player's inventory, including their armoring.
+	 * 
+	 * @param player
+	 *            The player's inventory to clear.
+	 */
 	public static void clearInventory(Player player) {
 		PlayerInventory inventory = player.getInventory();
 		inventory.clear();
 		inventory.setArmorContents(null);
 	}
 
+	/**
+	 * Gets the distance of the point from a line specified by a vector and a
+	 * point on that line.
+	 * 
+	 * @param line
+	 *            The vector showing the direction of the line.
+	 * @param pointonline
+	 *            Any point on that line.
+	 * @param point
+	 *            The point of interest to find the distance of.
+	 * @return The distance from the point to the line.
+	 */
 	public static double getDistanceFromLine(Vector line, Location pointonline,
 			Location point) {
 
@@ -55,6 +73,18 @@ public class Tools {
 		return (AP.crossProduct(line).length()) / (line.length());
 	}
 
+	/**
+	 * Returns the a block that is no farther than maxdistance away from the
+	 * given location that a player can teleport to without suffocating or
+	 * falling.
+	 * 
+	 * @param location
+	 *            The location to search.
+	 * @param maxdistance
+	 *            The max distance from the location to search (vertically).
+	 * @return The block a player can be teleported to, or null if there are
+	 *         none.
+	 */
 	public static Block getFloor(Location location, int maxdistance) {
 		Block startblock = location.getBlock();
 		Block solidblock = null;
@@ -78,6 +108,13 @@ public class Tools {
 		return null;
 	}
 
+	/**
+	 * Get the player which killed this player.
+	 * 
+	 * @param player
+	 *            The player that died.
+	 * @return The player that killed them.
+	 */
 	public static Player getKiller(Player player) {
 		double longestr = detectiveRange + 1;
 		Player target = null;
@@ -101,6 +138,15 @@ public class Tools {
 		return target;
 	}
 
+	/**
+	 * Gets the Living Entity that is being targeted by the player.
+	 * 
+	 * @param player
+	 *            The player doing the targeting.
+	 * @param range
+	 *            The max range of the targeting.
+	 * @return The targeted entity.
+	 */
 	public static Entity getTarget(Player player, double range) {
 		double longestr = range + 1;
 		Entity target = null;
@@ -124,6 +170,15 @@ public class Tools {
 		return target;
 	}
 
+	/**
+	 * Gets the Player that is being targeted by the player.
+	 * 
+	 * @param player
+	 *            The player doing the targeting.
+	 * @param range
+	 *            The max range of the targeting.
+	 * @return The targeted player.
+	 */
 	public static Player getTargetPlayer(Player player, int range) {
 		double longestr = range + 1;
 		Player target = null;
@@ -155,8 +210,10 @@ public class Tools {
 	 * Returns true if player1 is behind player2
 	 * 
 	 * @param player1
+	 *            The player to check their position.
 	 * @param player2
-	 * @return
+	 *            The player to check which direction they're facing.
+	 * @return True if player1 is behind player2.
 	 */
 	public static boolean isBehind(Player player1, Player player2) {
 		Vector v1 = player1.getEyeLocation().getDirection();
@@ -175,14 +232,34 @@ public class Tools {
 		return false;
 	}
 
+	/**
+	 * Checks if the block is opaque (Players cannot see through it).
+	 * 
+	 * @param block
+	 *            Block to check.
+	 * @return True if players cannot see through the block, false otherwise.
+	 */
 	public static boolean isSolid(Block block) {
 		return !isTransparent(block);
 	}
 
+	/**
+	 * Checks if the block is transparent (Players can see through it).
+	 * 
+	 * @param block
+	 *            Block to check.
+	 * @return True if players can see through the block, false otherwise.
+	 */
 	public static boolean isTransparent(Block block) {
 		return Arrays.asList(nonOpaque).contains(block.getTypeId());
 	}
 
+	/**
+	 * Prints the object to the console.
+	 * 
+	 * @param something
+	 *            The object to print to the console.
+	 */
 	public static <T> void verbose(T something) {
 		if (something == null) {
 			System.out.println("null");

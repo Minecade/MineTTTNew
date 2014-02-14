@@ -24,6 +24,11 @@ public class MineTTT extends JavaPlugin {
 
 	private static MineTTT plugin;
 
+	/**
+	 * Returns the plugin currently in use by the server.
+	 * 
+	 * @return The MineTTT instance.
+	 */
 	public static MineTTT getPlugin() {
 		return plugin;
 	}
@@ -42,12 +47,19 @@ public class MineTTT extends JavaPlugin {
 
 	public PlayerListener playerListener;
 
+	/**
+	 * Passes MineTTT commands to the CommandHandler for processing.
+	 */
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String label,
 			String[] args) {
 		return this.commandHandler.handleCommand(sender, cmd, label, args);
 	}
 
+	/**
+	 * Resets all players, ends the game, saves the players, and resets all
+	 * chests when the plugin disables.
+	 */
 	@Override
 	public void onDisable() {
 		if (this.thread.getGameStatus() != GameState.OFF) {
@@ -69,6 +81,10 @@ public class MineTTT extends JavaPlugin {
 
 	}
 
+	/**
+	 * On the enabling of the plugin, this registers all listeners, handlers,
+	 * managers, and threads.
+	 */
 	@Override
 	public void onEnable() {
 		plugin = this;
@@ -117,6 +133,9 @@ public class MineTTT extends JavaPlugin {
 		TTTPlayer.showAllPreGameScoreboards();
 	}
 
+	/**
+	 * This registers all listeners.
+	 */
 	private void registerListeners() {
 		this.playerListener = new PlayerListener(this);
 

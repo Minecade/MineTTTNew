@@ -9,14 +9,30 @@ import src.main.java.de.orion304.ttt.players.TTTPlayer;
 
 public class ChatManager {
 
-	private MineTTT plugin;
+	private final MineTTT plugin;
 
+	/**
+	 * Creates a new ChatManager instance, which will handle the processing and
+	 * formatting of all PlayerChatEvents.
+	 * 
+	 * @param instance
+	 */
 	public ChatManager(MineTTT instance) {
-		plugin = instance;
+		this.plugin = instance;
 	}
 
+	/**
+	 * The bread and butter of the ChatManager class. Takes the message that the
+	 * player sent, then manually sends that to whomever is supposed to see it,
+	 * while formatting the name properly.
+	 * 
+	 * @param player
+	 *            The player who sent the message.
+	 * @param message
+	 *            The message sent.
+	 */
 	public void handleChat(Player player, String message) {
-		GameState state = plugin.thread.getGameStatus();
+		GameState state = this.plugin.thread.getGameStatus();
 		TTTPlayer sender = TTTPlayer.getTTTPlayer(player);
 		PlayerTeam senderTeam = sender.getTeam();
 		String senderName = player.getDisplayName();

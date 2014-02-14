@@ -21,6 +21,7 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Scoreboard;
 
 import src.main.java.de.orion304.ttt.enderbar.BarAPI;
+import src.main.java.de.orion304.ttt.players.DeathLocation;
 import src.main.java.de.orion304.ttt.players.DetectiveCompass;
 import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
@@ -45,6 +46,13 @@ public class MainThread implements Runnable {
 	private GameState state = GameState.OFF;
 	private long time, starttime, lastannouncetime = (preptime - 1000) / 10000;
 
+	/**
+	 * Creates a new MainThread for MineTTT, which handles anything to do with
+	 * timing.
+	 * 
+	 * @param instance
+	 *            The MineTTT instance.
+	 */
 	public MainThread(MineTTT instance) {
 		this.plugin = instance;
 		this.server = Bukkit.getServer();
@@ -65,6 +73,9 @@ public class MainThread implements Runnable {
 		}
 	}
 
+	/**
+	 * Clears any dropped item in the worlds.
+	 */
 	private void clearDrops() {
 		if (this.arenaLocation == null) {
 			return;
@@ -77,6 +88,9 @@ public class MainThread implements Runnable {
 		}
 	}
 
+	/**
+	 * Clears all player inventories if they are playing.
+	 */
 	private void clearInventories() {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
@@ -86,6 +100,13 @@ public class MainThread implements Runnable {
 		}
 	}
 
+	/**
+	 * Ends the game.
+	 * 
+	 * @param forced
+	 *            True if the game was forcibly ended, false if the game ended
+	 *            by completing its normal course.
+	 */
 	public void endGame(boolean forced) {
 		this.state = GameState.OFF;
 		this.plugin.playerListener.resetDeadPlayers();
@@ -110,6 +131,7 @@ public class MainThread implements Runnable {
 		}
 		TTTPlayer.distributeCoinsToAll();
 		TempBlock.revertAll();
+		DeathLocation.reset();
 		clearDrops();
 		clearInventories();
 		TTTPlayer.dealKarma();
@@ -126,10 +148,25 @@ public class MainThread implements Runnable {
 
 	}
 
+	/**
+	 * Makes the detective's compass point to the killer.
+	 * 
+	 * @param detective
+	 *            The detective who has the compass.
+	 * @param killer
+	 *            The traitor who recently killed someone.
+	 */
 	public void findKiller(Player detective, Player killer) {
 		new DetectiveCompass(detective, killer);
 	}
 
+	/**
+	 * Gets the color of the arena.
+	 * 
+	 * @param key
+	 *            The name of the arena.
+	 * @return The color of the arena.
+	 */
 	public ChatColor getArenaColor(String key) {
 		if (this.arenaColors.containsKey(key)) {
 			return this.arenaColors.get(key);
@@ -137,6 +174,13 @@ public class MainThread implements Runnable {
 		return ChatColor.WHITE;
 	}
 
+	/**
+	 * Gets an arena's location.
+	 * 
+	 * @param name
+	 *            The name of the arena.
+	 * @return The location of the arena.
+	 */
 	public Location getArenaLocation(String name) {
 		if (this.arenaLocations.containsKey(name)) {
 			return this.arenaLocations.get(name);
@@ -144,10 +188,22 @@ public class MainThread implements Runnable {
 		return this.arenaLocations.get("default");
 	}
 
+	/**
+	 * Gets the map of all arena locations.
+	 * 
+	 * @return The map of all arena locations.
+	 */
 	public ConcurrentHashMap<String, Location> getArenaLocations() {
 		return this.arenaLocations;
 	}
 
+	/**
+	 * Gets the lore of an arena.
+	 * 
+	 * @param key
+	 *            The name of the arena.
+	 * @return The lore.
+	 */
 	public List<String> getArenaLore(String key) {
 		if (this.arenaLores.containsKey(key)) {
 			return this.arenaLores.get(key);
@@ -157,18 +213,37 @@ public class MainThread implements Runnable {
 		return lore;
 	}
 
+	/**
+	 * Gets the arena which is currently in use.
+	 * 
+	 * @return The location of the arena.
+	 */
 	public Location getCurrentArenaLocation() {
 		return this.arenaLocation;
 	}
 
+	/**
+	 * Gets the state of the game: OFF, GAME_PREPARING or GAME_RUNNING.
+	 * 
+	 * @return The state of the game.
+	 */
 	public GameState getGameStatus() {
 		return this.state;
 	}
 
+	/**
+	 * Gets the lobby location.
+	 * 
+	 * @return The location of the lobby.
+	 */
 	public Location getLobbyLocation() {
 		return this.lobbyLocation;
 	}
 
+	/**
+	 * Called every tick, this checks for any players who are not in the game
+	 * and have permission to spectate, then puts them in spectator mode.
+	 */
 	private void handleSpectators() {
 		if (!isGameRunning()) {
 			return;
@@ -197,15 +272,26 @@ public class MainThread implements Runnable {
 		}
 	}
 
+	/**
+	 * Returns true if the game state is GAME_RUNNING.
+	 * 
+	 * @return True if the game is running.
+	 */
 	public boolean isGameRunning() {
 		return this.state == GameState.GAME_RUNNING;
 	}
 
+	/**
+	 * Forces the sidebar scoreboard of the server to clear.
+	 */
 	private void killScoreboard() {
 		Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
 		board.clearSlot(DisplaySlot.SIDEBAR);
 	}
 
+	/**
+	 * Forces each player to be able to see the other.
+	 */
 	public void makeAllVisible() {
 		Player[] players = Bukkit.getOnlinePlayers();
 		for (Player player1 : players) {
@@ -217,7 +303,10 @@ public class MainThread implements Runnable {
 		}
 	}
 
-	// The heart of the thread of the program
+	/**
+	 * The heart of the thread, this checks all game mechanics which require
+	 * timing.
+	 */
 	@Override
 	public void run() {
 		this.time = System.currentTimeMillis();
@@ -253,17 +342,35 @@ public class MainThread implements Runnable {
 
 	}
 
+	/**
+	 * Sets the arena location and saves all the locations in memory.
+	 * 
+	 * @param name
+	 *            The name of the arena.
+	 * @param location
+	 *            Its location.
+	 */
 	public void setArenaLocation(String name, Location location) {
 		this.arenaLocations.put(name, location);
 		this.plugin.fileManager.setArenaLocations(this.arenaLocations);
 	}
 
+	/**
+	 * Sets the lobby location and saves the locations in memory.
+	 * 
+	 * @param location
+	 *            The lobby location.
+	 */
 	public void setLobbyLocation(Location location) {
 		this.lobbyLocation = location;
 		this.plugin.fileManager.setLobbyLocation(location);
 
 	}
 
+	/**
+	 * Attempts to start the game. The game will fail to start if too few
+	 * players choose to play.
+	 */
 	private void startGame() {
 		this.arenaLocation = TTTPlayer.getWinningLocation();
 		this.state = GameState.GAME_RUNNING;
@@ -327,6 +434,10 @@ public class MainThread implements Runnable {
 
 	}
 
+	/**
+	 * Begins the preparation stage of the game, where players can vote on a
+	 * map, and if they have permission, can choose to spectate instead.
+	 */
 	public void startPreparations() {
 		makeAllVisible();
 		TTTPlayer.resetScoreboards();
@@ -348,6 +459,15 @@ public class MainThread implements Runnable {
 		TTTPlayer.installAllVoteTools();
 	}
 
+	/**
+	 * Teleports a player to a location, but in a fitting random spot in a
+	 * radius around that location.
+	 * 
+	 * @param player
+	 *            The player to teleport.
+	 * @param location
+	 *            The desired location.
+	 */
 	private void teleportPlayer(Player player, Location location) {
 		int numberOfTries = 5;
 		int i = 0;

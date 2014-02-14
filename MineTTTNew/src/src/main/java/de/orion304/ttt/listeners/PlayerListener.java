@@ -26,7 +26,6 @@ import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryInteractEvent;
@@ -77,6 +76,13 @@ public class PlayerListener implements Listener {
 		this.chatManager = new ChatManager(instance);
 	}
 
+	/**
+	 * Makes players automatically click the "Respawn" button 2 ticks after
+	 * dying.
+	 * 
+	 * @param event
+	 *            The player death event.
+	 */
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void autoRespawn(final PlayerDeathEvent event) {
 		// auto-respawn
@@ -90,10 +96,22 @@ public class PlayerListener implements Listener {
 		}.runTaskLater(this.plugin, 2L);
 	}
 
+	/**
+	 * Returns the CraftPlayer object of a given Player object.
+	 * 
+	 * @param player
+	 *            The player to cast.
+	 * @return The CraftPlayer object.
+	 */
 	private EntityPlayer getPlayer(Player player) {
 		return ((CraftPlayer) player).getHandle();
 	}
 
+	/**
+	 * Gives a golden nugget to a player.
+	 * 
+	 * @param player
+	 */
 	private void giveNugget(Player player) {
 		player.getInventory().addItem(nugget);
 	}
@@ -117,6 +135,12 @@ public class PlayerListener implements Listener {
 	// }
 	// }
 
+	/**
+	 * Cancels the BlockBreak event if the player is spectating.
+	 * 
+	 * @param event
+	 *            The block break event.
+	 */
 	@EventHandler
 	public void onBlockBreak(BlockBreakEvent event) {
 		if (this.plugin.thread.isGameRunning()) {
@@ -128,6 +152,12 @@ public class PlayerListener implements Listener {
 		}
 	}
 
+	/**
+	 * Cancels the BlockDamage event if the player is spectating.
+	 * 
+	 * @param event
+	 *            The block damage event.
+	 */
 	@EventHandler
 	public void onBlockDamage(BlockDamageEvent event) {
 		if (this.plugin.thread.isGameRunning()) {
@@ -139,12 +169,25 @@ public class PlayerListener implements Listener {
 		}
 	}
 
+	/**
+	 * Sends the block place event's parameters to the TTTPlayer's handler.
+	 * 
+	 * @param event
+	 *            The block place event.
+	 */
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
 	public void onBlockPlace(BlockPlaceEvent event) {
 		Player player = event.getPlayer();
 		TTTPlayer.handleBlockPlace(player, event.getBlock());
 	}
 
+	/**
+	 * Handles all the things that go along with a player attacking another
+	 * player.
+	 * 
+	 * @param event
+	 *            The entity damage event.
+	 */
 	@EventHandler
 	public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
 		if (!this.plugin.thread.isGameRunning()) {
@@ -187,6 +230,13 @@ public class PlayerListener implements Listener {
 		}
 	}
 
+	/**
+	 * Passes most of the InventoryClick event to TTTPlayer to handle the shop,
+	 * voting, and other cases. Cancels the event if need be.
+	 * 
+	 * @param event
+	 *            The inventory click event.
+	 */
 	@EventHandler
 	public void onInventoryClick(InventoryClickEvent event) {
 		if (event.getWhoClicked() instanceof Player) {
@@ -199,29 +249,53 @@ public class PlayerListener implements Listener {
 		}
 	}
 
+	/**
+	 * Cancels the InventoryDrag event - though I'm not sure that this event is
+	 * ever even called.
+	 * 
+	 * @param event
+	 *            The inventory drag event.
+	 */
 	@EventHandler
 	public void onInventoryDrag(InventoryDragEvent event) {
 		event.getNewItems().clear();
 		event.setCancelled(true);
 	}
 
+	/**
+	 * Cancels people interacting with their inventory - though I'm not sure
+	 * that this event is ever called.
+	 * 
+	 * @param event
+	 *            The inventory interact event.
+	 */
 	@EventHandler
 	public void onInventoryInteract(InventoryInteractEvent event) {
 		event.setCancelled(true);
 	}
 
+	/**
+	 * Cancels people moving inventory items - though I'm not sure this event is
+	 * ever called.
+	 * 
+	 * @param event
+	 *            The inventory move event.
+	 */
 	@EventHandler
 	public void onInventoryMoveItem(InventoryMoveItemEvent event) {
 		event.setCancelled(true);
 		event.setItem(null);
 	}
 
+	/**
+	 * Handles people opening the chests managed by ChestHandler and prevents
+	 * spectators from doing anything with them.
+	 * 
+	 * @param event
+	 */
 	@EventHandler
 	public void onInventoryOpen(InventoryOpenEvent event) {
 		InventoryHolder holder = event.getInventory().getHolder();
-		if (holder instanceof Chest) {
-			this.plugin.chestHandler.handleChest((Chest) holder);
-		}
 		if (this.plugin.thread.isGameRunning()) {
 			if (!(event.getPlayer() instanceof Player)) {
 				Tools.verbose("not a player?");
@@ -232,10 +306,21 @@ public class PlayerListener implements Listener {
 			if (Tplayer.getTeam() == PlayerTeam.NONE) {
 				event.setCancelled(true);
 				p.closeInventory();
+				return;
 			}
 		}
+		if (holder instanceof Chest) {
+			this.plugin.chestHandler.handleChest((Chest) holder);
+		}
+
 	}
 
+	/**
+	 * Sends the Chat event to the chat manager for nicer formatting.
+	 * 
+	 * @param event
+	 *            The player chat event.
+	 */
 	@EventHandler
 	public void onPlayerChat(AsyncPlayerChatEvent event) {
 		Player player = event.getPlayer();
@@ -243,6 +328,13 @@ public class PlayerListener implements Listener {
 		event.setCancelled(true);
 	}
 
+	/**
+	 * Insures that no players can send /tells while spectating (an abusable
+	 * thing).
+	 * 
+	 * @param event
+	 *            The command preprocess event.
+	 */
 	@EventHandler
 	public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
 		String command = event.getMessage();
@@ -257,6 +349,14 @@ public class PlayerListener implements Listener {
 		}
 	}
 
+	/**
+	 * Handles all the specifics with a player dying, like dropping the head,
+	 * sending the messages, adding karma, giving nuggets, clearing drops and
+	 * sending the event to TTTPlayer.
+	 * 
+	 * @param event
+	 *            The player death event.
+	 */
 	@EventHandler
 	public void onPlayerDeath(PlayerDeathEvent event) {
 		Player player = event.getEntity();
@@ -373,12 +473,24 @@ public class PlayerListener implements Listener {
 
 	}
 
+	/**
+	 * Sends the event to TTTPlayer for processing.
+	 * 
+	 * @param event
+	 *            The player interact event.
+	 */
 	@EventHandler
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		Player player = event.getPlayer();
 		TTTPlayer.handleInteract(player);
 	}
 
+	/**
+	 * Sends the event 2 ticks later to TTTPlayer for processing.
+	 * 
+	 * @param event
+	 *            The player join event.
+	 */
 	@EventHandler
 	public void onPlayerJoin(final PlayerJoinEvent event) {
 		new BukkitRunnable() {
@@ -392,6 +504,14 @@ public class PlayerListener implements Listener {
 
 	}
 
+	/**
+	 * Checks the player first against the Minecade database to respect those
+	 * bans, then against the locally stored file with karma, to see if the
+	 * player is temporarily banned for karma reasons.
+	 * 
+	 * @param event
+	 *            The player login event.
+	 */
 	@EventHandler
 	public void onPlayerLogin(PlayerLoginEvent event) {
 		String name = event.getPlayer().getName();
@@ -406,6 +526,12 @@ public class PlayerListener implements Listener {
 		}
 	}
 
+	/**
+	 * Sends the event to TTTPlayer and cancels it if need be.
+	 * 
+	 * @param event
+	 *            The player pickup item event.
+	 */
 	@EventHandler
 	public void onPlayerPickupItem(PlayerPickupItemEvent event) {
 		boolean cancel = TTTPlayer.handleItemPickup(event.getPlayer());
@@ -414,22 +540,34 @@ public class PlayerListener implements Listener {
 		}
 	}
 
+	/**
+	 * Sends the event to TTTPlayer to monitor the number of players in a game,
+	 * team changes by leaving, scoreboards, etc.
+	 * 
+	 * @param event
+	 *            The player quit event.
+	 */
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent event) {
 		Player player = event.getPlayer();
 		TTTPlayer.handleLeave(player);
 	}
 
+	/**
+	 * Forcibly sets the respawn location to the Lobby.
+	 * 
+	 * @param event
+	 *            The player respawn event.
+	 */
 	@EventHandler
 	public void onPlayerRespawn(PlayerRespawnEvent event) {
 		event.setRespawnLocation(this.plugin.thread.getLobbyLocation());
 	}
 
-	@EventHandler
-	public void onProjectileLaunch(ProjectileLaunchEvent event) {
-
-	}
-
+	/**
+	 * This method does nothing since having players be "asleep" while dead
+	 * didn't work out.
+	 */
 	public void resetDeadPlayers() {
 		for (Player player : this.deadPlayers) {
 			// lookAlive(player);

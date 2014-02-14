@@ -92,6 +92,11 @@ public class FileManager {
 		loadPlayers();
 	}
 
+	/**
+	 * Retrieves the chat colors of all the arena.
+	 * 
+	 * @return A concurrent hash map with the colors.
+	 */
 	public ConcurrentHashMap<String, ChatColor> getArenaColors() {
 		ConcurrentHashMap<String, ChatColor> colors = new ConcurrentHashMap<>();
 		for (String key : this.locations.getKeys(false)) {
@@ -107,6 +112,13 @@ public class FileManager {
 
 	}
 
+	/**
+	 * Retrieves the arena location.
+	 * 
+	 * @param name
+	 *            The name of the arena.
+	 * @return The location of the arena.
+	 */
 	public Location getArenaLocation(String name) {
 		String worldProperty = ConfigProperty.getProperty(name,
 				ConfigProperty.LOCATION_WORLD);
@@ -134,6 +146,12 @@ public class FileManager {
 		return new Location(world, x, y, z);
 	}
 
+	/**
+	 * Retrieves a map of all the arena locations, with their names as the keys
+	 * and locations as the values.
+	 * 
+	 * @return A concurrent hash map of the arena locations.
+	 */
 	public ConcurrentHashMap<String, Location> getArenaLocations() {
 		ConcurrentHashMap<String, Location> locs = new ConcurrentHashMap<>();
 		for (String key : this.locations.getKeys(false)) {
@@ -150,6 +168,12 @@ public class FileManager {
 
 	}
 
+	/**
+	 * Retrieves a map of all arena lores, with their names as the keys and
+	 * their lores as the values.
+	 * 
+	 * @return A concurrent hash map of the arena lores.
+	 */
 	public ConcurrentHashMap<String, List<String>> getArenaLores() {
 		ConcurrentHashMap<String, List<String>> lores = new ConcurrentHashMap<>();
 		for (String key : this.locations.getKeys(false)) {
@@ -165,6 +189,17 @@ public class FileManager {
 
 	}
 
+	/**
+	 * Retrieves the chat color from the string stored in the configuration
+	 * file.
+	 * 
+	 * @param label
+	 *            The key of the config.
+	 * @param defaultColor
+	 *            The color to resort to should the key not hold correct
+	 *            information.
+	 * @return The chat color of the key.
+	 */
 	private ChatColor getChatColor(String label, ChatColor defaultColor) {
 		String color = this.config.getString(label, defaultColor.name());
 		ChatColor result = defaultColor;
@@ -176,6 +211,14 @@ public class FileManager {
 		return result;
 	}
 
+	/**
+	 * Gets the chat color of the location name.
+	 * 
+	 * @param key
+	 *            The location's name.
+	 * @return The chat color of the location, or ChatColor.WHITE if there was
+	 *         an error in retrieving that information.
+	 */
 	private ChatColor getColor(String key) {
 		if (this.locations.contains(key + ".color")) {
 			String string = this.locations.getString(key + ".color", "WHITE");
@@ -193,6 +236,11 @@ public class FileManager {
 		return color;
 	}
 
+	/**
+	 * Gets the lobby location from the locations file.
+	 * 
+	 * @return The lobby's location.
+	 */
 	public Location getLobbyLocation() {
 		String worldname = this.locations.getString(
 				ConfigProperty.LOBBY_LOCATION_WORLD, null);
@@ -212,6 +260,13 @@ public class FileManager {
 		return new Location(world, x, y, z);
 	}
 
+	/**
+	 * Gets the lore of an arena.
+	 * 
+	 * @param key
+	 *            The name of the arena.
+	 * @return The lore of the arena.
+	 */
 	private List<String> getLore(String key) {
 		if (this.locations.contains(key + ".lore")) {
 			return this.locations.getStringList(key + ".lore");
@@ -222,6 +277,9 @@ public class FileManager {
 		return lore;
 	}
 
+	/**
+	 * Loads all saved players into TTTPlayer.
+	 */
 	public void getSavedPlayers() {
 		String name;
 		int karma;
@@ -239,6 +297,9 @@ public class FileManager {
 		}
 	}
 
+	/**
+	 * Loads the config and locations files into memory.
+	 */
 	void load() {
 		// Make the folder containing these hard files, if necessary
 		if (!this.plugin.getDataFolder().exists()) {
@@ -280,6 +341,9 @@ public class FileManager {
 		}
 	}
 
+	/**
+	 * Loads all config properties into memory.
+	 */
 	private void loadConfigProperties() {
 		minimumNumberOfPlayers = this.config.getInt(
 				MinimumNumberOfPlayersLabel, minimumNumberOfPlayers);
@@ -312,6 +376,9 @@ public class FileManager {
 		saveConfig();
 	}
 
+	/**
+	 * Loads all saved players into memory.
+	 */
 	private void loadPlayers() {
 		// Make the folder containing these hard files, if necessary
 		if (!this.plugin.getDataFolder().exists()) {
@@ -336,6 +403,9 @@ public class FileManager {
 		}
 	}
 
+	/**
+	 * Saves the locations and players files.
+	 */
 	public void save() {
 		try {
 			this.locations.save(this.locationsFile);
@@ -346,6 +416,9 @@ public class FileManager {
 		}
 	}
 
+	/**
+	 * Saves the configuration file.
+	 */
 	private void saveConfig() {
 		try {
 			this.config.save(this.configFile);
@@ -354,6 +427,9 @@ public class FileManager {
 		}
 	}
 
+	/**
+	 * Saves the config properties in memory.
+	 */
 	private void saveConfigProperties() {
 		this.config.set(MinimumNumberOfPlayersLabel, minimumNumberOfPlayers);
 		this.config.set(PreparationTimeLabel, preparationTime);
@@ -376,6 +452,9 @@ public class FileManager {
 		saveConfig();
 	}
 
+	/**
+	 * Saves the TTTPlayers to file.
+	 */
 	public void savePlayers() {
 		this.players = new YamlConfiguration();
 		String name, key;
@@ -400,6 +479,14 @@ public class FileManager {
 		save();
 	}
 
+	/**
+	 * Sets the arena location and saves the locations file.
+	 * 
+	 * @param name
+	 *            The name of the arena.
+	 * @param location
+	 *            Its location.
+	 */
 	public void setArenaLocation(String name, Location location) {
 		String worldProperty = ConfigProperty.getProperty(name,
 				ConfigProperty.LOCATION_WORLD);
@@ -427,12 +514,24 @@ public class FileManager {
 		save();
 	}
 
+	/**
+	 * Saves all arena locations to file.
+	 * 
+	 * @param locations
+	 *            The map of the locations.
+	 */
 	public void setArenaLocations(ConcurrentHashMap<String, Location> locations) {
 		for (String key : locations.keySet()) {
 			setArenaLocation(key, locations.get(key));
 		}
 	}
 
+	/**
+	 * Sets the lobby location and saves the file.
+	 * 
+	 * @param location
+	 *            The lobby's location.
+	 */
 	public void setLobbyLocation(Location location) {
 		String worldname = location.getWorld().getName();
 		double x = location.getX();

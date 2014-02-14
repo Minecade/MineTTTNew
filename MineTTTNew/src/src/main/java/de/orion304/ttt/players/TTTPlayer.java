@@ -96,10 +96,22 @@ public class TTTPlayer {
 
 	private static ConcurrentHashMap<String, VoteInfo> votes = new ConcurrentHashMap<>();
 
+	/**
+	 * Makes all players register this player to their scoreboards.
+	 * 
+	 * @param player
+	 *            The player to register.
+	 */
 	public static void allRegisterPlayer(Player player) {
 		allRegisterPlayer(getTTTPlayer(player));
 	}
 
+	/**
+	 * Makes all players register this TTTPlayer to their scoreboards.
+	 * 
+	 * @param player
+	 *            The TTTPlayer to register.
+	 */
 	public static void allRegisterPlayer(TTTPlayer player) {
 		for (Player p : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(p);
@@ -107,16 +119,22 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Deals karma to players when the game ends.
+	 */
 	public static void dealKarma() {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
-			if (Tplayer.team == PlayerTeam.INNOCENT
-					|| Tplayer.team == PlayerTeam.DETECTIVE) {
+			if (Tplayer.team != PlayerTeam.NONE) {
 				Tplayer.addKarma();
 			}
 		}
 	}
 
+	/**
+	 * Distributes butter coins to all players, converting their nuggets to
+	 * coins.
+	 */
 	public static void distributeCoinsToAll() {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
@@ -124,6 +142,16 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Get the name of the player, to be read by the receiver, including
+	 * team-specific colors if applicable.
+	 * 
+	 * @param player
+	 *            The player to find the color-coded name of.
+	 * @param receiver
+	 *            The player who will be seeing this name.
+	 * @return The properly colored name of the player
+	 */
 	private static String getDisplayedName(TTTPlayer player, TTTPlayer receiver) {
 		GameState state = plugin.thread.getGameStatus();
 
@@ -167,14 +195,31 @@ public class TTTPlayer {
 		return playerName;
 	}
 
+	/**
+	 * Gets the number of detectives.
+	 * 
+	 * @return The number of detectives.
+	 */
 	public static int getNumberOfDetectives() {
 		return getNumberOfPlayers(PlayerTeam.DETECTIVE);
 	}
 
+	/**
+	 * Gets the number of innocents.
+	 * 
+	 * @return The number of innocents.
+	 */
 	public static int getNumberOfInnocents() {
 		return getNumberOfPlayers(PlayerTeam.INNOCENT);
 	}
 
+	/**
+	 * Gets the number of players on the specified team.
+	 * 
+	 * @param team
+	 *            The team to check for.
+	 * @return The number of players on that team.
+	 */
 	private static int getNumberOfPlayers(PlayerTeam team) {
 		int i = 0;
 		for (Player player : Bukkit.getOnlinePlayers()) {
@@ -186,14 +231,29 @@ public class TTTPlayer {
 		return i;
 	}
 
+	/**
+	 * Gets the number of traitors.
+	 * 
+	 * @return The number of traitors
+	 */
 	public static int getNumberOfTraitors() {
 		return getNumberOfPlayers(PlayerTeam.TRAITOR);
 	}
 
+	/**
+	 * Returns the collection of TTTPlayers.
+	 * 
+	 * @return
+	 */
 	public static Collection<TTTPlayer> getPlayers() {
 		return players.values();
 	}
 
+	/**
+	 * Gets the collection of players who are spectating.
+	 * 
+	 * @return The spectators.
+	 */
 	public static Collection<Player> getSpectators() {
 		List<Player> players = new ArrayList<>();
 		for (Player player : Bukkit.getOnlinePlayers()) {
@@ -205,6 +265,13 @@ public class TTTPlayer {
 		return players;
 	}
 
+	/**
+	 * Gets the TTTPlayer associated with this Player.
+	 * 
+	 * @param player
+	 *            The player to look for.
+	 * @return The TTTPlayer.
+	 */
 	public static TTTPlayer getTTTPlayer(Player player) {
 		if (player == null) {
 			return null;
@@ -213,6 +280,13 @@ public class TTTPlayer {
 		return getTTTPlayer(name);
 	}
 
+	/**
+	 * Gets the TTTPlayer associated with this player name.
+	 * 
+	 * @param playerName
+	 *            The name of the player to look for.
+	 * @return The TTTPlayer.
+	 */
 	public static TTTPlayer getTTTPlayer(String playerName) {
 		if (players.containsKey(playerName)) {
 			return players.get(playerName);
@@ -220,15 +294,12 @@ public class TTTPlayer {
 		return new TTTPlayer(playerName);
 	}
 
-	//
-	// public static TTTPlayer[] getTTTPlayers(Player[] players) {
-	// List<TTTPlayer> result = new ArrayList<>();
-	// for (Player player : players) {
-	// result.add(getTTTPlayer(player));
-	// }
-	// return result.toArray(new TTTPlayer[result.size()]);
-	// }
-
+	/**
+	 * Gets the list of voting items, with their proper lore and all.
+	 * 
+	 * @return An ArrayList of ItemStacks which represent the maps players will
+	 *         vote for.
+	 */
 	private static ArrayList<ItemStack> getVotingItems() {
 		ArrayList<ItemStack> items = new ArrayList<>();
 		int i = 0;
@@ -245,6 +316,14 @@ public class TTTPlayer {
 		return items;
 	}
 
+	/**
+	 * Goes through the votes and finds the location that won. NOTE: Unlike a
+	 * simple majority system, the vote tally is weighted. If Map A has 3 votes
+	 * and Map B has 1 vote, and that is all, then there is a 3:1 chance that
+	 * Map A will be chosen over Map B.
+	 * 
+	 * @return The winning arena location.
+	 */
 	public static Location getWinningLocation() {
 		ConcurrentHashMap<String, Location> locations = plugin.thread
 				.getArenaLocations();
@@ -276,6 +355,9 @@ public class TTTPlayer {
 
 	}
 
+	/**
+	 * Gives all players the chat items.
+	 */
 	public static void giveChatItemsToAll() {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
@@ -283,6 +365,14 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Handles a player placing a block - used only for Claymores.
+	 * 
+	 * @param player
+	 *            The player placing the block.
+	 * @param block
+	 *            The block that was placed to.
+	 */
 	public static void handleBlockPlace(Player player, Block block) {
 		ItemStack item = player.getItemInHand();
 		if (item == null) {
@@ -300,6 +390,13 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Handles a player dying. It distributes coins, checks game conditions, and
+	 * updates all other players' scoreboards.
+	 * 
+	 * @param player
+	 *            The player that died.
+	 */
 	public static void handleDeath(Player player) {
 		player.setGameMode(GameMode.ADVENTURE);
 		TTTPlayer Tplayer = getTTTPlayer(player);
@@ -315,6 +412,14 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Handles the interact action. Used for voting, chat items, and opening the
+	 * traitor shop.
+	 * 
+	 * @param player
+	 *            The player who interacted.
+	 * @return True if the event needs to be canceled.
+	 */
 	public static boolean handleInteract(Player player) {
 		ItemStack item = player.getItemInHand();
 		GameState state = plugin.thread.getGameStatus();
@@ -368,6 +473,18 @@ public class TTTPlayer {
 		return false;
 	}
 
+	/**
+	 * Handles a player clicking on an inventory slot. This is for voting and
+	 * shopping.
+	 * 
+	 * @param player
+	 *            The player that clicked the inventory.
+	 * @param item
+	 *            The item they clicked on.
+	 * @param slotType
+	 *            The slot type of the inventory that was clicked.
+	 * @return True if the event needs to be canceled.
+	 */
 	public static boolean handleInventoryClick(Player player, ItemStack item,
 			SlotType slotType) {
 		GameState state = plugin.thread.getGameStatus();
@@ -388,6 +505,14 @@ public class TTTPlayer {
 		return false;
 	}
 
+	/**
+	 * Handles a player picking up an item. Mostly simply cancels the event
+	 * unless the game is off.
+	 * 
+	 * @param player
+	 *            The player who picked up the item.
+	 * @return True if the event needs to be canceled.
+	 */
 	public static boolean handleItemPickup(Player player) {
 		GameState state = plugin.thread.getGameStatus();
 		TTTPlayer Tplayer = getTTTPlayer(player);
@@ -408,6 +533,19 @@ public class TTTPlayer {
 		return false;
 	}
 
+	/**
+	 * Handles a player joining the game. It shows their relevant scoreboard,
+	 * teleports them to the lobby, sets their game mode, and loads their
+	 * minecade account.If the game is off, checks if there are enough players
+	 * to start the game and starts it. If there are not enough players,
+	 * broadcast how many more players are necessary. If the game is going is
+	 * preparing, it gives the player their voting and spectating tools. If the
+	 * game is in progress, it forces the player to not be in the game, and then
+	 * the main thread will handle spectating if necessary.
+	 * 
+	 * @param player
+	 *            That player that joined.
+	 */
 	public static void handleJoin(Player player) {
 		if (player == null) {
 			return;
@@ -445,6 +583,13 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Handles a player leaving the server. If the game is running, it updates
+	 * the players' scoreboards and ends the game if necessary.
+	 * 
+	 * @param player
+	 *            The player that left.
+	 */
 	public static void handleLeave(Player player) {
 		TTTPlayer Tplayer = getTTTPlayer(player);
 		Tplayer.team = PlayerTeam.NONE;
@@ -460,6 +605,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Give all players their voting implements.
+	 */
 	public static void installAllVoteTools() {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
@@ -467,6 +615,13 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Checks to see if a player is banned from low karma.
+	 * 
+	 * @param name
+	 *            The name of the player.
+	 * @return True if the player is karma-banned.
+	 */
 	public static boolean isBanned(String name) {
 		if (players.containsKey(name)) {
 			TTTPlayer player = players.get(name);
@@ -475,6 +630,9 @@ public class TTTPlayer {
 		return false;
 	}
 
+	/**
+	 * Loads the colors of the teams.
+	 */
 	public static void loadColors() {
 		standardDetectiveLabel = Bukkit
 				.getOfflinePlayer(FileManager.detectiveColor + "Detectives:");
@@ -490,6 +648,9 @@ public class TTTPlayer {
 				+ bold + "Innocents:");
 	}
 
+	/**
+	 * Gives all players new scoreboards.
+	 */
 	public static void newScoreboards() {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
@@ -497,6 +658,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Makes all players register each other player.
+	 */
 	public static void registerAllScoreboards() {
 		Player[] players = Bukkit.getOnlinePlayers();
 		for (Player player1 : players) {
@@ -509,6 +673,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Resets all players and votes.
+	 */
 	public static void reset() {
 		for (TTTPlayer player : players.values()) {
 			player.resetPlayer();
@@ -516,6 +683,9 @@ public class TTTPlayer {
 		votes.clear();
 	}
 
+	/**
+	 * Resets all player scoreboards.
+	 */
 	public static void resetScoreboards() {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
@@ -523,6 +693,12 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Sets the level of all players - used in countdown timers.
+	 * 
+	 * @param level
+	 *            The new level.
+	 */
 	public static void setAllLevel(int level) {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			player.setExp(0);
@@ -530,6 +706,12 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Sets the plugin which is running the game.
+	 * 
+	 * @param instance
+	 *            The MineTTT instance.
+	 */
 	public static void setPlugin(MineTTT instance) {
 		plugin = instance;
 
@@ -562,6 +744,10 @@ public class TTTPlayer {
 		speedBoostCooldown = 30 * 1000L;
 	}
 
+	/**
+	 * Updates all players' scoreboards to have the number of detectives,
+	 * traitors and innocents on them.
+	 */
 	public static void showAllGameScoreboards() {
 
 		int detectives = TTTPlayer.getNumberOfDetectives();
@@ -574,6 +760,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Show all players the pre-game scoreboard (their stats).
+	 */
 	public static void showAllPreGameScoreboards() {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
@@ -581,6 +770,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Shows all players the preparation scoreboards (the map vote).
+	 */
 	public static void showAllPrepScoreboards() {
 		HashMap<OfflinePlayer, Integer> numberOfVotes = new HashMap<>();
 		for (String key : votes.keySet()) {
@@ -595,6 +787,14 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Shows the hidden player to the toShow player.
+	 * 
+	 * @param hidden
+	 *            The player that is hidden.
+	 * @param toShow
+	 *            The player to reveal the hidden player to.
+	 */
 	public static void showPlayer(Player hidden, Player toShow) {
 		if (hidden.equals(toShow)) {
 			return;
@@ -602,25 +802,9 @@ public class TTTPlayer {
 		if (!toShow.canSee(hidden)) {
 			toShow.showPlayer(hidden);
 		}
-		// Location l = hidden.getLocation();
-		// PacketPlayOutRelEntityMove packet = new PacketPlayOutRelEntityMove(
-		// hidden.getEntityId(), (byte) l.getX(), (byte) l.getY(),
-		// (byte) l.getZ());
-		// ((CraftPlayer)
-		// toShow).getHandle().playerConnection.sendPacket(packet);
-		// Tools.verbose("Showing " + hidden.getName() + " to " +
-		// toShow.getName());
-		// if (!toShow.canSee(hidden)) {
-		// toShow.showPlayer(hidden);
-		// }
-		// PacketPlayOutNamedEntitySpawn packet = new
-		// PacketPlayOutNamedEntitySpawn(
-		// ((CraftPlayer) hidden).getHandle());
-		// ((CraftPlayer)
-		// toShow).getHandle().playerConnection.sendPacket(packet);
 	}
 
-	private String playerName;
+	private final String playerName;
 
 	private PlayerTeam team = PlayerTeam.NONE;
 
@@ -651,22 +835,50 @@ public class TTTPlayer {
 
 	private boolean spectating = false;
 
+	/**
+	 * Creats a new TTTPlayer with this player's name.
+	 * 
+	 * @param name
+	 *            The player's name.
+	 */
 	public TTTPlayer(String name) {
 		this.playerName = name;
 		players.put(this.playerName, this);
 	}
 
+	/**
+	 * Creates a new TTTPlayer with this name, karma, ban data and ban length.
+	 * 
+	 * @param name
+	 *            The player name.
+	 * @param karma
+	 *            The player's karma.
+	 * @param banDate
+	 *            The ban date of the player.
+	 * @param banLength
+	 *            The ban length of the player.
+	 */
 	public TTTPlayer(String name, int karma, long banDate, long banLength) {
-		TTTPlayer player = new TTTPlayer(name);
-		player.karma = karma;
-		player.banDate = banDate;
-		player.banLength = banLength;
+		this(name);
+		this.karma = karma;
+		this.banDate = banDate;
+		this.banLength = banLength;
 	}
 
+	/**
+	 * Adds karma to the player, a random number between 40 and 60. (Karma caps
+	 * at 1000).
+	 */
 	public void addKarma() {
 		addKarma((int) (Math.random() * 20 + 40));
 	}
 
+	/**
+	 * Adds karma to the player. (Karma is always between 0 and 1000).
+	 * 
+	 * @param value
+	 *            The amount of karma to add.
+	 */
 	public void addKarma(int value) {
 		this.karma += value;
 		if (this.karma > 1000) {
@@ -678,11 +890,25 @@ public class TTTPlayer {
 		showKarma();
 	}
 
+	/**
+	 * Bans the player for the duration.
+	 * 
+	 * @param duration
+	 *            The duration (in ms) of the ban.
+	 */
 	public void ban(long duration) {
 		this.banDate = System.currentTimeMillis();
 		this.banLength = duration;
 	}
 
+	/**
+	 * Calls out a chat action.
+	 * 
+	 * @param action
+	 *            The action to call out.
+	 * @param target
+	 *            The target to call out about.
+	 */
 	private void callOut(Action action, Player target) {
 		Player me = getPlayer();
 		if (me == null) {
@@ -730,6 +956,11 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Gets whether the player can spectate or not.
+	 * 
+	 * @return True if the player can spectate.
+	 */
 	public boolean canSpectate() {
 		if (this.account.isVip() || this.account.isAdmin()
 				|| this.account.isCm() || this.account.isGm()) {
@@ -738,6 +969,9 @@ public class TTTPlayer {
 		return false;
 	}
 
+	/**
+	 * Checks the karma of the player, and bans if it falls below 200.
+	 */
 	public void checkKarma() {
 		Player p = getPlayer();
 		if (p == null) {
@@ -751,6 +985,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Distributes coins to the player, changing nuggets into butter coins.
+	 */
 	public void distributeCoins() {
 		Player player = getPlayer();
 		if (player == null) {
@@ -774,14 +1011,37 @@ public class TTTPlayer {
 		refreshScoreboard();
 	}
 
+	/**
+	 * Gets the date (system time in ms) that the player was banned at.
+	 * 
+	 * @return Returns the ban date, 0 if the player has never been banned.
+	 */
 	public long getBanDate() {
 		return this.banDate;
 	}
 
+	/**
+	 * Gets the length of the ban, 0 if the player has never been banned.
+	 * 
+	 * @return The length of the ban (in ms).
+	 */
 	public long getBanLength() {
 		return this.banLength;
 	}
 
+	/**
+	 * Called in the listener, this gets the damage done by a player. Unless the
+	 * player is a traitor and using a traitor item, nothing happens. Otherwise,
+	 * this handles one-hit-kill damages.
+	 * 
+	 * @param player
+	 *            The player which dealt the damage.
+	 * @param damage
+	 *            The damage dealt.
+	 * @param cause
+	 *            The cause of the damage.
+	 * @return The changed or unchanged damage value.
+	 */
 	public double getDamage(Player player, double damage, DamageCause cause) {
 		Player me = getPlayer();
 		if (me == null) {
@@ -844,34 +1104,75 @@ public class TTTPlayer {
 		return damage;
 	}
 
+	/**
+	 * Gets the karma of the player (a value between 0 and 1000).
+	 * 
+	 * @return The karma of the player.
+	 */
 	public int getKarma() {
 		return this.karma;
 	}
 
+	/**
+	 * Gets the smallest multiple of nine which is larger than the integer.
+	 * 
+	 * @param integer
+	 *            The integer to check.
+	 * @return A multiple of 9.
+	 */
 	private int getMultipleOfNine(int integer) {
 		return 9 * (int) Math.ceil(integer / 9.0);
 	}
 
+	/**
+	 * Gets the name of the player.
+	 * 
+	 * @return The player name.
+	 */
 	public String getName() {
 		return this.playerName;
 	}
 
+	/**
+	 * Gets the player.
+	 * 
+	 * @return The player by this name, or null if there is no player by this
+	 *         name online.
+	 */
 	public Player getPlayer() {
 		return Bukkit.getPlayer(this.playerName);
 	}
 
+	/**
+	 * Gets the player which most recently damaged this player.
+	 * 
+	 * @return The player that most recently damaged this player.
+	 */
 	public Player getRecentDamager() {
 		return this.recentDamager;
 	}
 
+	/**
+	 * Gets the team this player is on.
+	 * 
+	 * @return The team.
+	 */
 	public PlayerTeam getTeam() {
 		return this.team;
 	}
 
+	/**
+	 * Gets the player being tracked by this player.
+	 * 
+	 * @return The player being tracked.
+	 */
 	public Player getTrackedPlayer() {
 		return this.trackedPlayer;
 	}
 
+	/**
+	 * Gives the chat items to this player.
+	 */
 	private void giveChatItems() {
 		Player player = getPlayer();
 		if (player == null) {
@@ -910,6 +1211,13 @@ public class TTTPlayer {
 				duration * 20, amplitude));
 	}
 
+	/**
+	 * Handles the player clicking the item in a shop.
+	 * 
+	 * @param item
+	 *            The item the player clicked on.
+	 * @return True if the event needs to be canceled.
+	 */
 	private boolean handleShopClick(ItemStack item) {
 		if (item == null) {
 			return false;
@@ -976,6 +1284,9 @@ public class TTTPlayer {
 		return false;
 	}
 
+	/**
+	 * Hooks the player's scoreboard with the local scoreboard object.
+	 */
 	private void hookScoreboard() {
 		Player player = getPlayer();
 		if (player != null) {
@@ -983,6 +1294,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Initializes the player's scoreboard - for use when a game begins.
+	 */
 	private void initializeScoreboard() {
 		Player player = Bukkit.getPlayer(this.playerName);
 
@@ -1014,6 +1328,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Gives the player all the tools they need to vote or spectate.
+	 */
 	private void installVoteTools() {
 		Player p = getPlayer();
 		if (p == null) {
@@ -1041,14 +1358,27 @@ public class TTTPlayer {
 
 	}
 
+	/**
+	 * Checks if the player is karma-banned.
+	 * 
+	 * @return True if the player is banned.
+	 */
 	public boolean isBanned() {
 		return System.currentTimeMillis() < this.banDate + this.banLength;
 	}
 
+	/**
+	 * Checks if the player is currently spectating.
+	 * 
+	 * @return True if the player is spectating.
+	 */
 	private boolean isSpectating() {
 		return this.spectating;
 	}
 
+	/**
+	 * Loads the MinecadeAccount for this player.
+	 */
 	public void loadMinecadeAccount() {
 		this.account = plugin.minecade.getMinecadeAccount(this.playerName);
 		Player p = getPlayer();
@@ -1057,10 +1387,16 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Makes the player lose an amount of karma between 120 and 180.
+	 */
 	public void loseKarma() {
-		addKarma(-(int) (random.nextDouble() * 50 + 120));
+		addKarma(-(int) (random.nextDouble() * 60 + 120));
 	}
 
+	/**
+	 * Gives the player a new scoreboard.
+	 */
 	private void newScoreboard() {
 		Player p = getPlayer();
 		if (p == null) {
@@ -1069,6 +1405,9 @@ public class TTTPlayer {
 		p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
 	}
 
+	/**
+	 * Opens the shop for the player.
+	 */
 	public void openShop() {
 		Player player = getPlayer();
 		if (player == null) {
@@ -1088,6 +1427,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Opens the traitor shop for the player.
+	 */
 	private void openTraitorShop() {
 		Player p = getPlayer();
 		if (p == null) {
@@ -1138,10 +1480,19 @@ public class TTTPlayer {
 		p.openInventory(shopInventory);
 	}
 
+	/**
+	 * Places a claymore on the block.
+	 * 
+	 * @param block
+	 *            The block to place the claymore in.
+	 */
 	private void placeClaymore(Block block) {
 		new Claymore(block);
 	}
 
+	/**
+	 * Refreshes the scoreboard, updating its information.
+	 */
 	public void refreshScoreboard() {
 		// Tools.verbose("Refreshing " + playerName + "'s scoreboard");
 		GameState state = plugin.thread.getGameStatus();
@@ -1170,6 +1521,9 @@ public class TTTPlayer {
 	// p.updateInventory();
 	// }
 
+	/**
+	 * Registers all players for this player.
+	 */
 	public void registerAllPlayers() {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
@@ -1177,10 +1531,22 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Registers player for this player.
+	 * 
+	 * @param player
+	 *            The player to register.
+	 */
 	public void registerPlayer(Player player) {
 		registerPlayer(getTTTPlayer(player));
 	}
 
+	/**
+	 * Registers player for this player.
+	 * 
+	 * @param player
+	 *            The TTTPlayer to register.
+	 */
 	public void registerPlayer(TTTPlayer player) {
 		switch (this.team) {
 		case NONE:
@@ -1199,6 +1565,15 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Registers player for this player, coloring their name if the player's
+	 * team is in the allowed teams.
+	 * 
+	 * @param player
+	 *            The TTTPlayer to register.
+	 * @param allowedTeams
+	 *            The teams this player is allowed to see.
+	 */
 	private void registerPlayer(TTTPlayer player, PlayerTeam... allowedTeams) {
 		if (player == null) {
 			return;
@@ -1238,6 +1613,9 @@ public class TTTPlayer {
 
 	}
 
+	/**
+	 * Resets all the info and scoreboard for this player.
+	 */
 	public void resetPlayer() {
 		this.team = PlayerTeam.NONE;
 		this.recentDamager = null;
@@ -1247,6 +1625,9 @@ public class TTTPlayer {
 		resetScoreboard();
 	}
 
+	/**
+	 * Resets the scoreboard for this player.
+	 */
 	private void resetScoreboard() {
 		Scoreboard newboard = Bukkit.getScoreboardManager().getNewScoreboard();
 		Player p = getPlayer();
@@ -1256,6 +1637,12 @@ public class TTTPlayer {
 		this.scoreboard = newboard;
 	}
 
+	/**
+	 * Sends a message to this player, if the player is online.
+	 * 
+	 * @param string
+	 *            The message to send.
+	 */
 	public void sendMessage(String string) {
 		Player p = getPlayer();
 		if (p != null) {
@@ -1263,6 +1650,12 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Sets the karma for this player (a value between 0 and 1000).
+	 * 
+	 * @param karma
+	 *            The new karma value.
+	 */
 	public void setKarma(int karma) {
 		if (karma > 1000) {
 			karma = 1000;
@@ -1274,18 +1667,39 @@ public class TTTPlayer {
 		showKarma();
 	}
 
+	/**
+	 * Sets the player who most recently damaged this player.
+	 * 
+	 * @param player
+	 *            The player who dealt the damage.
+	 */
 	public void setRecentDamager(Player player) {
 		this.recentDamager = player;
 	}
 
+	/**
+	 * Sets the team of this player.
+	 * 
+	 * @param team
+	 *            The team to set.
+	 */
 	public void setTeam(PlayerTeam team) {
 		this.team = team;
 	}
 
+	/**
+	 * Sets the player this player is tracking.
+	 * 
+	 * @param player
+	 *            The player to track.
+	 */
 	public void setTrackedPlayer(Player player) {
 		this.trackedPlayer = player;
 	}
 
+	/**
+	 * Shows the scoreboard for the player during a game.
+	 */
 	private void showGameScoreboard() {
 		int detectives = TTTPlayer.getNumberOfDetectives();
 		int traitors = TTTPlayer.getNumberOfTraitors();
@@ -1294,6 +1708,17 @@ public class TTTPlayer {
 		showGameScoreboard(detectives, traitors, innocents);
 	}
 
+	/**
+	 * Shows the scoreboard for a player in a game, with the number of
+	 * detectives, innocents and traitors in it.
+	 * 
+	 * @param detectives
+	 *            The number of detectives.
+	 * @param traitors
+	 *            The number of traitors.
+	 * @param innocents
+	 *            The number of innocents.
+	 */
 	private void showGameScoreboard(int detectives, int traitors, int innocents) {
 		hookScoreboard();
 		Objective objective = this.scoreboard.getObjective("livingPlayers");
@@ -1340,6 +1765,9 @@ public class TTTPlayer {
 		innocentCount.setScore(innocents);
 	}
 
+	/**
+	 * Displays the karma for this player on their XP bar.
+	 */
 	public void showKarma() {
 		Player p = getPlayer();
 		if (p != null) {
@@ -1349,6 +1777,9 @@ public class TTTPlayer {
 		checkKarma();
 	}
 
+	/**
+	 * Shows the pre-game scoreboard for this player (the map vote).
+	 */
 	private void showPreGameScoreboard() {
 		loadMinecadeAccount();
 		hookScoreboard();
@@ -1376,6 +1807,9 @@ public class TTTPlayer {
 		butterCoinScore.setScore(coins);
 	}
 
+	/**
+	 * Shows the preparation scoreboard for the player (the stats).
+	 */
 	private void showPrepScoreboard() {
 		HashMap<OfflinePlayer, Integer> numberOfVotes = new HashMap<>();
 		for (String key : votes.keySet()) {
@@ -1387,6 +1821,13 @@ public class TTTPlayer {
 		showPrepScoreboard(numberOfVotes);
 	}
 
+	/**
+	 * Shows the preparation scoreboard, given the map of the number of votes.
+	 * 
+	 * @param numberOfVotes
+	 *            The map of the number of votes and the arena name they
+	 *            correspond to.
+	 */
 	private void showPrepScoreboard(
 			HashMap<OfflinePlayer, Integer> numberOfVotes) {
 		hookScoreboard();
@@ -1409,6 +1850,12 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Removes the amountOfNuggets from the player's inventory.
+	 * 
+	 * @param amountOfNuggets
+	 *            The number of gold nuggets to remove.
+	 */
 	private void spendNuggets(int amountOfNuggets) {
 		Player player = getPlayer();
 		if (player == null) {
@@ -1437,6 +1884,13 @@ public class TTTPlayer {
 		player.updateInventory();
 	}
 
+	/**
+	 * Makes the player vote for whatever arena corresponds to the item.
+	 * 
+	 * @param item
+	 *            The item the player clicked on.
+	 * @return True if the event needs to be canceled.
+	 */
 	private boolean vote(ItemStack item) {
 		Player player = getPlayer();
 		if (player == null) {

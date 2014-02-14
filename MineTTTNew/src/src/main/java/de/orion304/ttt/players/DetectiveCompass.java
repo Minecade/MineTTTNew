@@ -12,18 +12,9 @@ public class DetectiveCompass {
 
 	private static long duration = FileManager.compassDuration;
 
-	private Player detective, killer;
-	private long starttime;
-
-	public DetectiveCompass(Player detective, Player killer) {
-		this.detective = detective;
-		this.killer = killer;
-
-		starttime = System.currentTimeMillis();
-		duration = FileManager.compassDuration;
-		compasses.put(detective, this);
-	}
-
+	/**
+	 * Handles all DetectiveCompass objects in existence.
+	 */
 	public static void progressAll() {
 		for (Player detective : compasses.keySet()) {
 			DetectiveCompass compass = compasses.get(detective);
@@ -31,25 +22,52 @@ public class DetectiveCompass {
 		}
 	}
 
+	private final Player detective, killer;
+
+	private final long starttime;
+
+	/**
+	 * Creates an object which will handle the detective's compass pointing to
+	 * the killer.
+	 * 
+	 * @param detective
+	 *            The detective.
+	 * @param killer
+	 *            The killer the detective is tracking.
+	 */
+	public DetectiveCompass(Player detective, Player killer) {
+		this.detective = detective;
+		this.killer = killer;
+
+		this.starttime = System.currentTimeMillis();
+		duration = FileManager.compassDuration;
+		compasses.put(detective, this);
+	}
+
+	/**
+	 * Handles this detective compass - makes it point to the killer or
+	 * deactivate after the correct time.
+	 */
 	private void progress() {
-		if (System.currentTimeMillis() > starttime + duration) {
-			compasses.remove(detective);
+		if (System.currentTimeMillis() > this.starttime + duration) {
+			compasses.remove(this.detective);
 			return;
 		}
 
-		if (detective.isDead()) {
-			compasses.remove(detective);
+		if (this.detective.isDead()) {
+			compasses.remove(this.detective);
 			return;
 		}
 
-		if (!detective.isOnline()) {
+		if (!this.detective.isOnline()) {
 			return;
 		}
 
-		if (!detective.getWorld().equals(killer.getWorld()))
+		if (!this.detective.getWorld().equals(this.killer.getWorld())) {
 			return;
+		}
 
-		detective.setCompassTarget(killer.getLocation());
+		this.detective.setCompassTarget(this.killer.getLocation());
 	}
 
 }
