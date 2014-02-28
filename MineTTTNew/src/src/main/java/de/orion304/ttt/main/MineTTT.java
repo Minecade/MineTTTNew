@@ -79,6 +79,8 @@ public class MineTTT extends JavaPlugin {
 			}
 		}
 
+		this.thread.destroyHologram();
+		this.playerListener.resetDeadPlayers();
 	}
 
 	/**

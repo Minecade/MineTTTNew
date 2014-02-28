@@ -10,6 +10,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import src.main.java.de.orion304.ttt.players.Rank;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
 
 public class CommandHandler {
@@ -24,6 +25,36 @@ public class CommandHandler {
 	 */
 	public CommandHandler(MineTTT instance) {
 		this.plugin = instance;
+	}
+
+	/**
+	 * Adds coins to the player's Minecade account.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
+	private void addCoins(Player player, String[] args) {
+		if (args.length != 2) {
+			sendMessage(player, "Usage: /addcoins <player> <numberOfCoins>");
+			return;
+		}
+
+		long i = 0;
+		try {
+			i = Long.parseLong(args[1]);
+		} catch (NumberFormatException e) {
+			sendMessage(player, "That wasn't a number...");
+			return;
+		}
+		if (this.plugin.minecade.addCoins(args[0], i)) {
+			sendMessage(player, i + " coins have been added to " + args[0]
+					+ "'s account.");
+		} else {
+			sendMessage(player, "There was an error.");
+		}
+		update(args[0], null);
 	}
 
 	/**
@@ -123,6 +154,12 @@ public class CommandHandler {
 			return true;
 		case "load":
 			load();
+			return true;
+		case "setrank":
+			setRank(player, args);
+			return true;
+		case "addcoins":
+			addCoins(player, args);
 			return true;
 		}
 		return false;
@@ -286,6 +323,30 @@ public class CommandHandler {
 		sendMessage(player, playerUsage);
 	}
 
+	private void setRank(Player player, String[] args) {
+		if (args.length == 0 || args.length > 2) {
+			sendMessage(player, "Usage: /set rank <player> <rank>");
+			return;
+		}
+
+		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(args[0]);
+
+		Rank rank = Rank.getRank(args[1]);
+		if (rank == null) {
+			sendMessage(player, "That is not a valid rank.");
+			return;
+		}
+
+		Tplayer.setRank(rank);
+		if (rank == Rank.NONE) {
+			sendMessage(player, args[0] + " was cleared of all ranks.");
+		} else {
+			sendMessage(player, args[0] + " was set to rank: " + rank);
+		}
+
+		update(args[0], null);
+	}
+
 	/**
 	 * Opens the shop for the player.
 	 * 
@@ -414,9 +475,19 @@ public class CommandHandler {
 			sendMessage(player, "This command cannot be used from the console.");
 			return;
 		}
-		String username = player.getName();
+		update(player.getName(), args);
+	}
 
-		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(username);
+	/**
+	 * Forces the server to update the player's account from Minecade.
+	 * 
+	 * @param player
+	 *            The player who sent the command.
+	 * @param args
+	 *            The arguments of the command.
+	 */
+	private void update(String playerName, String[] args) {
+		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(playerName);
 		Tplayer.loadMinecadeAccount();
 		Tplayer.refreshScoreboard();
 	}

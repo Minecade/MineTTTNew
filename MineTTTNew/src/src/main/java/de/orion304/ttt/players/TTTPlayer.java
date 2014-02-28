@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
@@ -24,6 +26,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -35,6 +38,7 @@ import org.bukkit.scoreboard.Team;
 
 import src.main.java.de.orion304.ttt.listeners.PlayerListener;
 import src.main.java.de.orion304.ttt.main.Action;
+import src.main.java.de.orion304.ttt.main.Bungee;
 import src.main.java.de.orion304.ttt.main.Claymore;
 import src.main.java.de.orion304.ttt.main.FileManager;
 import src.main.java.de.orion304.ttt.main.GameState;
@@ -62,6 +66,7 @@ public class TTTPlayer {
 	private static long speedBoostCooldown = 30 * 1000L;
 
 	private static Random random = new Random();
+	private static final String whitespace = "                   ";
 
 	private static OfflinePlayer standardDetectiveLabel = Bukkit
 			.getOfflinePlayer(FileManager.detectiveColor + "Detectives:"),
@@ -90,7 +95,18 @@ public class TTTPlayer {
 
 	private static final String voteForAMap = "Vote for a map...";
 	private static final String spectateGame = "Spectate this game";
+	private static final String chooseDetectiveLabel = FileManager.detectiveColor
+			+ "Choose to be a Detective";
+	private static final String chooseInnocentLabel = FileManager.innocentColor
+			+ "Choose to be an Innocent";
+	private static final String chooseTraitorLabel = FileManager.traitorColor
+			+ "Choose to be a Traitor";
+	private static final String chooseRandomLabel = FileManager.spectatorColor
+			+ "Let the server choose for you";
 	private static final String playGame = "Play this game";
+	private static final String leaveLabel = ChatColor.DARK_PURPLE
+			+ "Leave the server";
+	private static final String statsLabel = ChatColor.GOLD + "Stats";
 
 	private static ItemStack trustItem, suspectItem, claimItem;
 
@@ -143,6 +159,54 @@ public class TTTPlayer {
 	}
 
 	/**
+	 * Gets the set of players who have chosen to be a detective.
+	 * 
+	 * @return The set.
+	 */
+	public static Set<Player> getDesiredDetectives() {
+		Set<Player> set = new HashSet<>();
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = getTTTPlayer(player);
+			if (Tplayer.chooseDetective) {
+				set.add(player);
+			}
+		}
+		return set;
+	}
+
+	/**
+	 * Gets the set of players who have chosen to be a innocent.
+	 * 
+	 * @return The set.
+	 */
+	public static Set<Player> getDesiredInnocents() {
+		Set<Player> set = new HashSet<>();
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = getTTTPlayer(player);
+			if (Tplayer.chooseInnocent) {
+				set.add(player);
+			}
+		}
+		return set;
+	}
+
+	/**
+	 * Gets the set of players who have chosen to be a traitor.
+	 * 
+	 * @return The set.
+	 */
+	public static Set<Player> getDesiredTraitors() {
+		Set<Player> set = new HashSet<>();
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = getTTTPlayer(player);
+			if (Tplayer.chooseTraitor) {
+				set.add(player);
+			}
+		}
+		return set;
+	}
+
+	/**
 	 * Get the name of the player, to be read by the receiver, including
 	 * team-specific colors if applicable.
 	 * 
@@ -152,7 +216,7 @@ public class TTTPlayer {
 	 *            The player who will be seeing this name.
 	 * @return The properly colored name of the player
 	 */
-	private static String getDisplayedName(TTTPlayer player, TTTPlayer receiver) {
+	public static String getDisplayedName(TTTPlayer player, TTTPlayer receiver) {
 		GameState state = plugin.thread.getGameStatus();
 
 		Player p = player.getPlayer();
@@ -166,16 +230,20 @@ public class TTTPlayer {
 		PlayerTeam receiverTeam = receiver.team;
 
 		String playerName = p.getName();
+		String rank = player.rank.toString();
+		if (rank != "") {
+			rank = rank + " ";
+		}
 
 		if (state != GameState.GAME_RUNNING) {
-			return playerName;
+			return rank + playerName;
 		}
 
 		if (team == PlayerTeam.NONE) {
 			if (receiverTeam == PlayerTeam.NONE) {
 				playerName = FileManager.spectatorColor + "<Spectator> "
 						+ playerName + ChatColor.RESET;
-				return playerName;
+				return rank + playerName;
 			}
 		}
 
@@ -183,16 +251,16 @@ public class TTTPlayer {
 				&& (receiverTeam == PlayerTeam.NONE || receiverTeam == PlayerTeam.TRAITOR)) {
 			playerName = FileManager.traitorColor + playerName
 					+ ChatColor.RESET;
-			return playerName;
+			return rank + playerName;
 		}
 
 		if (team == PlayerTeam.DETECTIVE) {
 			playerName = FileManager.detectiveColor + playerName
 					+ ChatColor.RESET;
-			return playerName;
+			return rank + playerName;
 		}
 
-		return playerName;
+		return rank + playerName;
 	}
 
 	/**
@@ -303,7 +371,7 @@ public class TTTPlayer {
 	private static ArrayList<ItemStack> getVotingItems() {
 		ArrayList<ItemStack> items = new ArrayList<>();
 		int i = 0;
-		for (String key : plugin.thread.getArenaLocations().keySet()) {
+		for (String key : plugin.thread.getLoadedArenaKeys()) {
 			ItemStack stack = new ItemStack(Material.DIAMOND, 1);
 			ItemMeta meta = stack.getItemMeta();
 			meta.setDisplayName("Vote for " + key);
@@ -363,6 +431,22 @@ public class TTTPlayer {
 			TTTPlayer Tplayer = getTTTPlayer(player);
 			Tplayer.giveChatItems();
 		}
+	}
+
+	public static void giveLeaveItem(Player player) {
+		ItemStack item = new ItemStack(Material.NETHER_STAR, 1);
+		ItemMeta meta = item.getItemMeta();
+		meta.setDisplayName(leaveLabel);
+		item.setItemMeta(meta);
+
+		Inventory inventory = player.getInventory();
+		inventory.setItem(8, item);
+	}
+
+	public static void giveStatsBook(Player player) {
+		TTTPlayer Tplayer = getTTTPlayer(player);
+		Tplayer.giveStatsBook();
+
 	}
 
 	/**
@@ -426,7 +510,7 @@ public class TTTPlayer {
 		TTTPlayer Tplayer = getTTTPlayer(player);
 		switch (state) {
 		case OFF:
-			break;
+			return Tplayer.vote(item);
 		case GAME_PREPARING:
 			return Tplayer.vote(item);
 		case GAME_RUNNING:
@@ -520,10 +604,7 @@ public class TTTPlayer {
 		case OFF:
 			break;
 		case GAME_PREPARING:
-			if (!Tplayer.hasVoted) {
-				return true;
-			}
-			break;
+			return true;
 		case GAME_RUNNING:
 			if (Tplayer.team == PlayerTeam.NONE) {
 				return true;
@@ -550,6 +631,8 @@ public class TTTPlayer {
 		if (player == null) {
 			return;
 		}
+
+		plugin.thread.reloadHologram();
 		player.teleport(plugin.thread.getLobbyLocation());
 		GameState state = plugin.thread.getGameStatus();
 		TTTPlayer Tplayer = getTTTPlayer(player);
@@ -570,6 +653,8 @@ public class TTTPlayer {
 				Bukkit.broadcastMessage(color.toString() + need
 						+ " more players must join before the game can start.");
 			}
+			giveLeaveItem(player);
+			Tplayer.giveStatsBook();
 			break;
 		case GAME_PREPARING:
 			Tplayer.showPrepScoreboard();
@@ -821,9 +906,11 @@ public class TTTPlayer {
 
 	private long banDate = 0, banLength = 0;
 
-	private transient boolean hasVoted = false;
+	private transient int timesVoted = 0;
 
 	public MinecadeAccount account;
+
+	private Rank rank = Rank.NONE;
 
 	private final ConcurrentHashMap<String, Long> calls = new ConcurrentHashMap<>();
 
@@ -833,7 +920,8 @@ public class TTTPlayer {
 
 	private final List<SpecialItem> ownedItems = new ArrayList<>();
 
-	private boolean spectating = false;
+	private boolean spectating = false, chooseTraitor = false,
+			chooseDetective = false, chooseInnocent = false;
 
 	/**
 	 * Creats a new TTTPlayer with this player's name.
@@ -858,11 +946,16 @@ public class TTTPlayer {
 	 * @param banLength
 	 *            The ban length of the player.
 	 */
-	public TTTPlayer(String name, int karma, long banDate, long banLength) {
+	public TTTPlayer(String name, int karma, long banDate, long banLength,
+			String rank) {
 		this(name);
 		this.karma = karma;
 		this.banDate = banDate;
 		this.banLength = banLength;
+		this.rank = Rank.getRank(rank);
+		if (this.rank == null) {
+			this.rank = Rank.NONE;
+		}
 	}
 
 	/**
@@ -880,14 +973,8 @@ public class TTTPlayer {
 	 *            The amount of karma to add.
 	 */
 	public void addKarma(int value) {
-		this.karma += value;
-		if (this.karma > 1000) {
-			this.karma = 1000;
-		}
-		if (this.karma < 0) {
-			this.karma = 0;
-		}
-		showKarma();
+		int newkarma = this.karma + value;
+		setKarma(newkarma);
 	}
 
 	/**
@@ -899,6 +986,7 @@ public class TTTPlayer {
 	public void ban(long duration) {
 		this.banDate = System.currentTimeMillis();
 		this.banLength = duration;
+		save();
 	}
 
 	/**
@@ -956,14 +1044,34 @@ public class TTTPlayer {
 		}
 	}
 
+	private boolean canChooseDetective() {
+		if (this.rank.getTier() >= 2) {
+			return true;
+		}
+		return false;
+	}
+
+	private boolean canChooseInnocent() {
+		if (this.rank.getTier() >= 2) {
+			return true;
+		}
+		return false;
+	}
+
+	private boolean canChooseTraitor() {
+		if (this.rank.getTier() >= 2) {
+			return true;
+		}
+		return false;
+	}
+
 	/**
 	 * Gets whether the player can spectate or not.
 	 * 
 	 * @return True if the player can spectate.
 	 */
 	public boolean canSpectate() {
-		if (this.account.isVip() || this.account.isAdmin()
-				|| this.account.isCm() || this.account.isGm()) {
+		if (this.rank.getTier() > 1) {
 			return true;
 		}
 		return false;
@@ -983,6 +1091,13 @@ public class TTTPlayer {
 			this.banDate = System.currentTimeMillis();
 			this.banLength = duration;
 		}
+	}
+
+	private void clearChoices() {
+		this.chooseTraitor = false;
+		this.chooseDetective = false;
+		this.chooseInnocent = false;
+		this.spectating = false;
 	}
 
 	/**
@@ -1007,6 +1122,10 @@ public class TTTPlayer {
 		player.getInventory().removeItem(
 				toRemove.toArray(new ItemStack[toRemove.size()]));
 		plugin.minecade.addCoins(this.playerName, coins);
+		if (coins != 0) {
+			player.sendMessage(ChatColor.GOLD.toString() + ChatColor.ITALIC
+					+ "You earned " + coins + " tokens!");
+		}
 		loadMinecadeAccount();
 		refreshScoreboard();
 	}
@@ -1140,7 +1259,11 @@ public class TTTPlayer {
 	 *         name online.
 	 */
 	public Player getPlayer() {
-		return Bukkit.getPlayer(this.playerName);
+		return Bukkit.getPlayerExact(this.playerName);
+	}
+
+	public Rank getRank() {
+		return this.rank;
 	}
 
 	/**
@@ -1188,6 +1311,16 @@ public class TTTPlayer {
 	}
 
 	/**
+	 * Gives the item to the player that allows them to disconnect via Bungee.
+	 */
+	public void giveLeaveItem() {
+		Player player = getPlayer();
+		if (player != null) {
+			giveLeaveItem(player);
+		}
+	}
+
+	/**
 	 * Gives the player a speed boost unless the player has had one recently.
 	 * 
 	 * @param amplitude
@@ -1209,6 +1342,38 @@ public class TTTPlayer {
 		this.lastSpeedBoostTime = time;
 		player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,
 				duration * 20, amplitude));
+	}
+
+	/**
+	 * Gives the player a book with all their stats.
+	 */
+	public void giveStatsBook() {
+		Player p = getPlayer();
+		if (p == null) {
+			return;
+		}
+
+		ItemStack item = new ItemStack(Material.WRITTEN_BOOK, 1);
+		BookMeta meta = (BookMeta) item.getItemMeta();
+		meta.setDisplayName(statsLabel);
+		String page1 = "Your Stats:\n";
+		page1 += "Karma: " + this.karma + "\n";
+		page1 += "Games played: " + 0 + "\n";
+		page1 += "\n";
+		page1 += "Innocent Kills:\n";
+		page1 += " Traitors: " + 0 + "\n";
+		page1 += "\n";
+		page1 += "Detective Kills:\n";
+		page1 += " Traitors: " + 0 + "\n";
+		page1 += "\n";
+		page1 += "Traitor Kills:\n";
+		page1 += " Innocents: " + 0 + "\n";
+		page1 += " Detectives: " + 0 + "\n";
+		meta.addPage(page1);
+		item.setItemMeta(meta);
+
+		Inventory inventory = p.getInventory();
+		inventory.setItem(2, item);
 	}
 
 	/**
@@ -1284,6 +1449,14 @@ public class TTTPlayer {
 		return false;
 	}
 
+	private boolean hasVoted() {
+		if (this.rank.getTier() >= 1) {
+			return this.timesVoted >= 2;
+		} else {
+			return this.timesVoted == 1;
+		}
+	}
+
 	/**
 	 * Hooks the player's scoreboard with the local scoreboard object.
 	 */
@@ -1298,7 +1471,7 @@ public class TTTPlayer {
 	 * Initializes the player's scoreboard - for use when a game begins.
 	 */
 	private void initializeScoreboard() {
-		Player player = Bukkit.getPlayer(this.playerName);
+		Player player = getPlayer();
 
 		if (player != null) {
 			this.scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
@@ -1338,22 +1511,72 @@ public class TTTPlayer {
 		}
 		Inventory inventory = p.getInventory();
 		Tools.clearInventory(p);
-		ItemStack vote = new ItemStack(Material.DIAMOND, 1);
-		ItemMeta voteMeta = vote.getItemMeta();
-		voteMeta.setDisplayName(voteForAMap);
-		List<String> lore = new ArrayList<>();
-		lore.add("You cannot choose to spectate after you've voted.");
-		voteMeta.setLore(lore);
-		vote.setItemMeta(voteMeta);
-		inventory.setItem(0, vote);
 
-		if (canSpectate()) {
+		if (this.timesVoted == 0) {
+			giveLeaveItem(p);
+		}
+
+		giveStatsBook();
+
+		if (!hasVoted()) {
+			ItemStack vote = new ItemStack(Material.DIAMOND, 1);
+			ItemMeta voteMeta = vote.getItemMeta();
+			voteMeta.setDisplayName(voteForAMap);
+			List<String> lore = new ArrayList<>();
+			lore.add("You cannot choose to spectate or leave after you've voted.");
+			voteMeta.setLore(lore);
+			vote.setItemMeta(voteMeta);
+			inventory.setItem(0, vote);
+		}
+
+		if (canSpectate() && this.timesVoted == 0) {
 			ItemStack spectate = new ItemStack(Material.SKULL_ITEM, 1,
 					(short) 3);
 			ItemMeta spectateMeta = spectate.getItemMeta();
 			spectateMeta.setDisplayName(spectateGame);
 			spectate.setItemMeta(spectateMeta);
 			inventory.setItem(1, spectate);
+		}
+
+		if (canChooseDetective() && !this.chooseDetective) {
+			ItemStack detectiveChoice = new ItemStack(Material.COMPASS, 1);
+			ItemMeta detectiveChoiceMeta = detectiveChoice.getItemMeta();
+			detectiveChoiceMeta.setDisplayName(chooseDetectiveLabel);
+			detectiveChoice.setItemMeta(detectiveChoiceMeta);
+			inventory.setItem(4, detectiveChoice);
+		}
+
+		if (canChooseTraitor() && !this.chooseTraitor) {
+			ItemStack traitorChoice = new ItemStack(Material.BLAZE_POWDER, 1);
+			ItemMeta traitorChoiceMeta = traitorChoice.getItemMeta();
+			traitorChoiceMeta.setDisplayName(chooseTraitorLabel);
+			traitorChoice.setItemMeta(traitorChoiceMeta);
+			inventory.setItem(5, traitorChoice);
+		}
+
+		if (canChooseInnocent() && !this.chooseInnocent) {
+			ItemStack innocentChoice = new ItemStack(Material.PAPER, 1);
+			ItemMeta innocentChoiceMeta = innocentChoice.getItemMeta();
+			innocentChoiceMeta.setDisplayName(chooseInnocentLabel);
+			innocentChoice.setItemMeta(innocentChoiceMeta);
+			inventory.setItem(6, innocentChoice);
+		}
+
+		int i = 0;
+		if (this.chooseDetective) {
+			i = 4;
+		} else if (this.chooseTraitor) {
+			i = 5;
+		} else if (this.chooseInnocent) {
+			i = 6;
+		}
+
+		if (i != 0) {
+			ItemStack randomChoiceItem = new ItemStack(Material.GHAST_TEAR, 1);
+			ItemMeta randomChoiceMeta = randomChoiceItem.getItemMeta();
+			randomChoiceMeta.setDisplayName(chooseRandomLabel);
+			randomChoiceItem.setItemMeta(randomChoiceMeta);
+			inventory.setItem(i, randomChoiceItem);
 		}
 
 	}
@@ -1375,6 +1598,18 @@ public class TTTPlayer {
 	private boolean isSpectating() {
 		return this.spectating;
 	}
+
+	// private void installVoteTools(List<ItemStack> items) {
+	// Player p = getPlayer();
+	// if (p == null)
+	// return;
+	// Inventory inventory = p.getInventory();
+	// inventory.clear();
+	// for (int i = 0; i < items.size(); i++) {
+	// inventory.setItem(i, items.get(i));
+	// }
+	// p.updateInventory();
+	// }
 
 	/**
 	 * Loads the MinecadeAccount for this player.
@@ -1509,18 +1744,6 @@ public class TTTPlayer {
 		}
 	}
 
-	// private void installVoteTools(List<ItemStack> items) {
-	// Player p = getPlayer();
-	// if (p == null)
-	// return;
-	// Inventory inventory = p.getInventory();
-	// inventory.clear();
-	// for (int i = 0; i < items.size(); i++) {
-	// inventory.setItem(i, items.get(i));
-	// }
-	// p.updateInventory();
-	// }
-
 	/**
 	 * Registers all players for this player.
 	 */
@@ -1582,7 +1805,7 @@ public class TTTPlayer {
 			initializeScoreboard();
 		}
 		PlayerTeam hisTeam = player.team;
-		Player p = Bukkit.getPlayer(player.playerName);
+		Player p = player.getPlayer();
 		Player me = getPlayer();
 
 		if (p == null || me == null) {
@@ -1621,7 +1844,11 @@ public class TTTPlayer {
 		this.recentDamager = null;
 		this.trackedPlayer = null;
 		this.teams.clear();
-		this.hasVoted = false;
+		this.timesVoted = 0;
+		this.spectating = false;
+		this.chooseDetective = false;
+		this.chooseInnocent = false;
+		this.chooseTraitor = false;
 		resetScoreboard();
 	}
 
@@ -1635,6 +1862,10 @@ public class TTTPlayer {
 			p.setScoreboard(newboard);
 		}
 		this.scoreboard = newboard;
+	}
+
+	private void save() {
+		plugin.fileManager.save(this);
 	}
 
 	/**
@@ -1665,6 +1896,18 @@ public class TTTPlayer {
 		}
 		this.karma = karma;
 		showKarma();
+		save();
+	}
+
+	/**
+	 * Sets the players rank.
+	 * 
+	 * @param rank
+	 *            The rank to set.
+	 */
+	public void setRank(Rank rank) {
+		this.rank = rank;
+		save();
 	}
 
 	/**
@@ -1906,15 +2149,24 @@ public class TTTPlayer {
 		if (key == null) {
 			return false;
 		}
+		if (key.equals(leaveLabel)) {
+			Bungee.disconnect(player);
+			return true;
+		}
+		if (key.equals(statsLabel)) {
+			return false;
+		}
+		if (plugin.thread.getGameStatus() == GameState.OFF) {
+			return false;
+		}
+		player.closeInventory();
 		if (key.equals(playGame)) {
 			this.spectating = false;
 			installVoteTools();
 			return true;
 		}
-		if (this.hasVoted) {
-			return false;
-		}
 		if (key.equals(spectateGame)) {
+			clearChoices();
 			this.spectating = true;
 			Tools.clearInventory(player);
 			Inventory inventory = player.getInventory();
@@ -1923,6 +2175,31 @@ public class TTTPlayer {
 			playMeta.setDisplayName(playGame);
 			playItem.setItemMeta(playMeta);
 			inventory.setItem(0, playItem);
+			giveLeaveItem(player);
+			giveStatsBook();
+			return true;
+		}
+		if (key.equals(chooseTraitorLabel)) {
+			clearChoices();
+			this.chooseTraitor = true;
+			installVoteTools();
+			return true;
+		}
+		if (key.equals(chooseDetectiveLabel)) {
+			clearChoices();
+			this.chooseDetective = true;
+			installVoteTools();
+			return true;
+		}
+		if (key.equals(chooseInnocentLabel)) {
+			clearChoices();
+			this.chooseInnocent = true;
+			installVoteTools();
+			return true;
+		}
+		if (key.equals(chooseRandomLabel)) {
+			clearChoices();
+			installVoteTools();
 			return true;
 		}
 		if (key.equals(voteForAMap)) {
@@ -1943,7 +2220,7 @@ public class TTTPlayer {
 		ConcurrentHashMap<String, Location> locations = plugin.thread
 				.getArenaLocations();
 		if (locations.containsKey(key)) {
-			this.hasVoted = true;
+			this.timesVoted++;
 			VoteInfo info;
 			if (votes.containsKey(key)) {
 				info = votes.get(key);
@@ -1958,6 +2235,7 @@ public class TTTPlayer {
 			player.updateInventory();
 			player.sendMessage(ChatColor.GREEN + "You have voted for the "
 					+ key + ChatColor.GREEN + " map.");
+			installVoteTools();
 			return true;
 		}
 		return false;

@@ -8,6 +8,7 @@ import net.minecraft.server.v1_7_R1.EnumClientCommand;
 import net.minecraft.server.v1_7_R1.PacketPlayInClientCommand;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.SkullType;
 import org.bukkit.block.Block;
@@ -25,6 +26,8 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -52,13 +55,15 @@ import src.main.java.de.orion304.ttt.main.Tools;
 import src.main.java.de.orion304.ttt.players.DeathLocation;
 import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
+import src.main.java.org.orion304.utils.Hologram;
 
 public class PlayerListener implements Listener {
 
 	public static final ItemStack nugget = new ItemStack(Material.GOLD_NUGGET,
 			1);
 
-	private final ArrayList<Player> deadPlayers = new ArrayList<Player>();
+	private final ArrayList<Player> deadPlayers = new ArrayList<>();
+	private final List<Hologram> holograms = new ArrayList<>();
 
 	MineTTT plugin;
 	ChatManager chatManager;
@@ -179,6 +184,14 @@ public class PlayerListener implements Listener {
 	public void onBlockPlace(BlockPlaceEvent event) {
 		Player player = event.getPlayer();
 		TTTPlayer.handleBlockPlace(player, event.getBlock());
+	}
+
+	@EventHandler
+	public void onEntityDamage(EntityDamageEvent event) {
+		if (event.getCause() == DamageCause.THORNS
+				|| event.getCause() == DamageCause.FALL) {
+			event.setCancelled(true);
+		}
 	}
 
 	/**
@@ -385,15 +398,8 @@ public class PlayerListener implements Listener {
 				if (block == null) {
 					block = player.getLocation().getBlock();
 				}
-				// lookDead(player, block);
 				this.deadPlayers.add(player);
-				new TempBlock(block, Material.SKULL);
-				BlockState state = block.getState();
-				Skull skull = (Skull) state;
-				skull.setOwner(player.getDisplayName());
-				skull.setSkullType(SkullType.PLAYER);
-				skull.update(true, true);
-
+				spawnSkull(player, block);
 			}
 
 			if (playerTeam != PlayerTeam.NONE && damagerTeam != PlayerTeam.NONE) {
@@ -405,12 +411,27 @@ public class PlayerListener implements Listener {
 				if ((damagerTeam != PlayerTeam.TRAITOR && playerTeam == PlayerTeam.TRAITOR)) {
 					Tplayer.addKarma();
 					giveNugget(recentDamager);
+					recentDamager.sendMessage(ChatColor.GOLD.toString()
+							+ ChatColor.ITALIC
+							+ "You got 1 gold nugget for taking down a "
+							+ FileManager.traitorColor + playerTeam
+							+ ChatColor.RESET + "!");
 				}
 
 				if (damagerTeam == PlayerTeam.TRAITOR
 						&& playerTeam != PlayerTeam.TRAITOR) {
 					TrecentDamager.addKarma();
 					giveNugget(recentDamager);
+					String roleName = FileManager.innocentColor
+							+ playerTeam.toString() + ChatColor.RESET;
+					if (playerTeam == PlayerTeam.DETECTIVE) {
+						roleName = FileManager.detectiveColor
+								+ playerTeam.toString() + ChatColor.RESET;
+					}
+					recentDamager.sendMessage(ChatColor.GOLD.toString()
+							+ ChatColor.ITALIC
+							+ "You got 1 gold nugget for taking down a "
+							+ roleName + "!");
 					TrecentDamager.giveSpeedBoost(2, 5);
 				}
 
@@ -573,5 +594,25 @@ public class PlayerListener implements Listener {
 			// lookAlive(player);
 		}
 		this.deadPlayers.clear();
+		for (Hologram hologram : this.holograms) {
+			hologram.destroy();
+		}
+		this.holograms.clear();
+	}
+
+	private void spawnSkull(Player player, Block block) {
+		new TempBlock(block, Material.SKULL);
+		BlockState state = block.getState();
+		Skull skull = (Skull) state;
+		skull.setOwner(player.getName());
+		skull.setSkullType(SkullType.PLAYER);
+		skull.update(true, true);
+
+		Hologram hologram = new Hologram(this.plugin, "Here lies "
+				+ player.getDisplayName());
+		Location location = block.getLocation().clone();
+		location.add(0, 2, 0);
+		hologram.show(location);
+		this.holograms.add(hologram);
 	}
 }

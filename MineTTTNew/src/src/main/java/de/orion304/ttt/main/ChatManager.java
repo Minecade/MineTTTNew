@@ -32,40 +32,23 @@ public class ChatManager {
 	 *            The message sent.
 	 */
 	public void handleChat(Player player, String message) {
-		GameState state = this.plugin.thread.getGameStatus();
 		TTTPlayer sender = TTTPlayer.getTTTPlayer(player);
 		PlayerTeam senderTeam = sender.getTeam();
-		String senderName = player.getDisplayName();
+		String senderName;
 		for (Player p : Bukkit.getOnlinePlayers()) {
-			if (state != GameState.GAME_RUNNING) {
-				p.sendMessage(player.getDisplayName() + ": " + message);
-				continue;
-			}
 			TTTPlayer receiver = TTTPlayer.getTTTPlayer(p);
+			senderName = TTTPlayer.getDisplayedName(sender, receiver);
 			PlayerTeam receiverTeam = receiver.getTeam();
 			if (senderTeam == PlayerTeam.NONE) {
 				if (receiverTeam == PlayerTeam.NONE) {
-					p.sendMessage(FileManager.spectatorColor + "<Spectator> "
-							+ senderName + ChatColor.RESET + ": " + message);
+					p.sendMessage(senderName + ChatColor.RESET.toString()
+							+ ChatColor.GRAY + ": " + message);
 				}
 				continue;
 			}
 
-			if (senderTeam == PlayerTeam.TRAITOR
-					&& (receiverTeam == PlayerTeam.NONE || receiverTeam == PlayerTeam.TRAITOR)) {
-				p.sendMessage(FileManager.traitorColor + senderName
-						+ ChatColor.RESET + ": " + message);
-				continue;
-			}
-
-			if (senderTeam == PlayerTeam.DETECTIVE) {
-				p.sendMessage(FileManager.detectiveColor + senderName
-						+ ChatColor.RESET + ": " + message);
-				continue;
-			}
-
-			p.sendMessage(senderName + ": " + message);
-
+			p.sendMessage(senderName + ChatColor.RESET.toString()
+					+ ChatColor.GRAY + ": " + message);
 		}
 
 	}

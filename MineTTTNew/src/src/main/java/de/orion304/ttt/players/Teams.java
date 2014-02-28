@@ -1,8 +1,9 @@
 package src.main.java.de.orion304.ttt.players;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -51,10 +52,14 @@ public class Teams {
 	 * @return True if there are enough players to play.
 	 */
 	public boolean initializeTeams() {
-		ArrayList<Player> players = new ArrayList<Player>(
-				Arrays.asList(this.server.getOnlinePlayers()));
+		Set<Player> players = new HashSet<Player>(Arrays.asList(this.server
+				.getOnlinePlayers()));
 
 		players.removeAll(TTTPlayer.getSpectators());
+
+		Set<Player> desiredDetectives = TTTPlayer.getDesiredDetectives();
+		Set<Player> desiredTraitors = TTTPlayer.getDesiredTraitors();
+		Set<Player> desiredInnocents = TTTPlayer.getDesiredInnocents();
 
 		int numberOfPlayers = players.size();
 
@@ -73,28 +78,69 @@ public class Teams {
 			numberOfDetectives = 1;
 		}
 
-		int traitorCount = 0, detectiveCount = 0;
+		int numberOfInnocents = numberOfPlayers - numberOfTraitors
+				- numberOfDetectives;
 
-		while (traitorCount < numberOfTraitors) {
-			int i = this.random.nextInt(players.size());
-			Player player = players.get(i);
-			players.remove(i);
+		int traitorCount = 0, detectiveCount = 0, innocentCount = 0;
+
+		Player player;
+		players.removeAll(desiredInnocents);
+		players.removeAll(desiredDetectives);
+		players.removeAll(desiredTraitors);
+
+		while (traitorCount < numberOfTraitors && !desiredTraitors.isEmpty()) {
+			// Tools.verbose("Desired traitor size: " + desiredTraitors.size());
+			player = Tools.chooseFromSet(desiredTraitors);
+			desiredTraitors.remove(player);
 			setTeam(player, PlayerTeam.TRAITOR);
 			traitorCount++;
 		}
 
-		while (detectiveCount < numberOfDetectives) {
-			int i = this.random.nextInt(players.size());
-			Player player = players.get(i);
-			players.remove(i);
+		players.addAll(desiredTraitors);
+
+		while (detectiveCount < numberOfDetectives
+				&& !desiredDetectives.isEmpty()) {
+			// Tools.verbose("Desired detectives size: "
+			// + desiredDetectives.size());
+			player = Tools.chooseFromSet(desiredDetectives);
+			desiredDetectives.remove(player);
 			setTeam(player, PlayerTeam.DETECTIVE);
 			player.getInventory()
 					.setItem(8, new ItemStack(Material.COMPASS, 1));
 			detectiveCount++;
 		}
 
-		for (Player player : players) {
+		players.addAll(desiredDetectives);
+
+		while (innocentCount < numberOfInnocents && !desiredInnocents.isEmpty()) {
+			// Tools.verbose("Desired innocents size: " +
+			// desiredInnocents.size());
+			player = Tools.chooseFromSet(desiredInnocents);
+			desiredInnocents.remove(player);
 			setTeam(player, PlayerTeam.INNOCENT);
+			innocentCount++;
+		}
+
+		players.addAll(desiredInnocents);
+
+		while (traitorCount < numberOfTraitors) {
+			player = Tools.chooseFromSet(players);
+			players.remove(player);
+			setTeam(player, PlayerTeam.TRAITOR);
+			traitorCount++;
+		}
+
+		while (detectiveCount < numberOfDetectives) {
+			player = Tools.chooseFromSet(players);
+			players.remove(player);
+			setTeam(player, PlayerTeam.DETECTIVE);
+			player.getInventory()
+					.setItem(8, new ItemStack(Material.COMPASS, 1));
+			detectiveCount++;
+		}
+
+		for (Player p : players) {
+			setTeam(p, PlayerTeam.INNOCENT);
 		}
 
 		TTTPlayer.registerAllScoreboards();

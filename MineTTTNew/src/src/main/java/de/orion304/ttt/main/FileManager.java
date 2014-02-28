@@ -44,12 +44,23 @@ public class FileManager {
 	private static final String InnocentColorLabel = ColorLabel + ".innocent";
 	private static final String SpectatorColorLabel = ColorLabel + ".spectator";
 
-	private static final String SQLLabel = "SQL";
+	private static final String SQLLabel = "Minecade_SQL";
 	private static final String SQLUsernameLabel = SQLLabel + ".username";
 	private static final String SQLPasswordLabel = SQLLabel + ".password";
 	private static final String SQLDatabaseNameLabel = SQLLabel + ".database";
 	private static final String SQLHostnameLabel = SQLLabel + ".hostname";
 	private static final String SQLPortLabel = SQLLabel + ".port";
+	private static final String PlayerSQLLabel = "Player_SQL";
+	private static final String UsePlayerSQLLabel = PlayerSQLLabel + ".use";
+	private static final String PlayerSQLUsernameLabel = PlayerSQLLabel
+			+ ".username";
+	private static final String PlayerSQLPasswordLabel = PlayerSQLLabel
+			+ ".password";
+	private static final String PlayerSQLDatabaseNameLabel = PlayerSQLLabel
+			+ ".database";
+	private static final String PlayerSQLHostnameLabel = PlayerSQLLabel
+			+ ".hostname";
+	private static final String PlayerSQLPortLabel = PlayerSQLLabel + ".port";
 
 	private final FileConfiguration locations = new YamlConfiguration();
 	private FileConfiguration players = new YamlConfiguration();
@@ -58,7 +69,7 @@ public class FileManager {
 	private final MineTTT plugin;
 
 	public static int minimumNumberOfPlayers = 24; //
-	public static long preparationTime = 15 * 1000L; //
+	public static long preparationTime = 30 * 1000L; //
 	public static double detectiveRange = 5D;
 	public static long compassDuration = 5 * 1000L; //
 	public static double percentTraitors = .25, percentDetectives = .125;
@@ -70,8 +81,16 @@ public class FileManager {
 			spectatorColor = ChatColor.GRAY;
 
 	public static String SQLusername = "username", SQLpassword = "password",
-			SQLdatabaseName = "database", SQLhostname = "localhost";
+			SQLdatabaseName = "database", SQLhostname = "minecadehost";
 	public static int SQLport = 3306;
+
+	public static String PlayerSQLusername = "username",
+			PlayerSQLpassword = "password", PlayerSQLdatabaseName = "database",
+			PlayerSQLhostname = "localhost";
+	public static int PlayerSQLport = 3306;
+	private static boolean UsePlayerSQL = false;
+
+	private LocalDatabase database;
 
 	/**
 	 * Instantiates a FileHandler, which handles all hard files associated with
@@ -284,14 +303,16 @@ public class FileManager {
 		String name;
 		int karma;
 		long bandate, banlength;
+		String rank;
 		for (String player : this.players.getKeys(false)) {
 			name = this.players.getString(player + ".name", null);
 			karma = this.players.getInt(player + ".karma", 0);
 			bandate = this.players.getLong(player + ".bandate", 0);
 			banlength = this.players.getLong(player + ".banlength", 0);
+			rank = this.players.getString(player + ".rank", "NONE");
 
 			if (name != null) {
-				new TTTPlayer(name, karma, bandate, banlength);
+				new TTTPlayer(name, karma, bandate, banlength, rank);
 			}
 
 		}
@@ -339,6 +360,12 @@ public class FileManager {
 				e.printStackTrace();
 			}
 		}
+
+		if (UsePlayerSQL) {
+			this.database = new LocalDatabase(this.plugin, PlayerSQLhostname,
+					PlayerSQLport, PlayerSQLdatabaseName, PlayerSQLusername,
+					PlayerSQLpassword);
+		}
 	}
 
 	/**
@@ -372,6 +399,16 @@ public class FileManager {
 				SQLdatabaseName);
 		SQLhostname = this.config.getString(SQLHostnameLabel, SQLhostname);
 		SQLport = this.config.getInt(SQLPortLabel, SQLport);
+		UsePlayerSQL = this.config.getBoolean(UsePlayerSQLLabel, UsePlayerSQL);
+		PlayerSQLusername = this.config.getString(PlayerSQLUsernameLabel,
+				PlayerSQLusername);
+		PlayerSQLpassword = this.config.getString(PlayerSQLPasswordLabel,
+				PlayerSQLpassword);
+		PlayerSQLdatabaseName = this.config.getString(
+				PlayerSQLDatabaseNameLabel, PlayerSQLdatabaseName);
+		PlayerSQLhostname = this.config.getString(PlayerSQLHostnameLabel,
+				PlayerSQLhostname);
+		PlayerSQLport = this.config.getInt(PlayerSQLPortLabel, PlayerSQLport);
 		TTTPlayer.loadColors();
 		saveConfig();
 	}
@@ -380,25 +417,31 @@ public class FileManager {
 	 * Loads all saved players into memory.
 	 */
 	private void loadPlayers() {
-		// Make the folder containing these hard files, if necessary
-		if (!this.plugin.getDataFolder().exists()) {
-			this.plugin.getDataFolder().mkdir();
-		}
 
-		// Load all saved players, or make the files that stores them if there
-		// are none.
-		if (this.playersFile.exists()) {
-			try {
-				this.players.load(this.playersFile);
-				getSavedPlayers();
-			} catch (IOException | InvalidConfigurationException e) {
-				e.printStackTrace();
-			}
+		if (UsePlayerSQL) {
+			this.database.loadAllPlayers();
 		} else {
-			try {
-				this.playersFile.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
+			// Make the folder containing these hard files, if necessary
+			if (!this.plugin.getDataFolder().exists()) {
+				this.plugin.getDataFolder().mkdir();
+			}
+
+			// Load all saved players, or make the files that stores them if
+			// there
+			// are none.
+			if (this.playersFile.exists()) {
+				try {
+					this.players.load(this.playersFile);
+					getSavedPlayers();
+				} catch (IOException | InvalidConfigurationException e) {
+					e.printStackTrace();
+				}
+			} else {
+				try {
+					this.playersFile.createNewFile();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -410,9 +453,15 @@ public class FileManager {
 		try {
 			this.locations.save(this.locationsFile);
 			this.players.save(this.playersFile);
+			saveConfigProperties();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+
+	public void save(TTTPlayer tttPlayer) {
+		if (UsePlayerSQL) {
+			this.database.updatePlayer(tttPlayer);
 		}
 	}
 
@@ -449,6 +498,12 @@ public class FileManager {
 		this.config.set(SQLUsernameLabel, SQLusername);
 		this.config.set(SQLPasswordLabel, SQLpassword);
 		this.config.set(SQLDatabaseNameLabel, SQLdatabaseName);
+		this.config.set(UsePlayerSQLLabel, UsePlayerSQL);
+		this.config.set(PlayerSQLHostnameLabel, PlayerSQLhostname);
+		this.config.set(PlayerSQLPortLabel, PlayerSQLport);
+		this.config.set(PlayerSQLUsernameLabel, PlayerSQLusername);
+		this.config.set(PlayerSQLPasswordLabel, PlayerSQLpassword);
+		this.config.set(PlayerSQLDatabaseNameLabel, PlayerSQLdatabaseName);
 		saveConfig();
 	}
 
@@ -456,24 +511,31 @@ public class FileManager {
 	 * Saves the TTTPlayers to file.
 	 */
 	public void savePlayers() {
-		this.players = new YamlConfiguration();
-		String name, key;
-		int karma;
-		long banDate, banLength;
-		Object value;
-		for (TTTPlayer player : TTTPlayer.getPlayers()) {
-			name = player.getName();
-			karma = player.getKarma();
-			banDate = player.getBanDate();
-			banLength = player.getBanLength();
+		if (UsePlayerSQL) {
+			this.database.saveAllPlayers();
+		} else {
+			this.players = new YamlConfiguration();
+			String name, key;
+			int karma;
+			long banDate, banLength;
+			String rank;
+			Object value;
+			for (TTTPlayer player : TTTPlayer.getPlayers()) {
+				name = player.getName();
+				karma = player.getKarma();
+				banDate = player.getBanDate();
+				banLength = player.getBanLength();
+				rank = player.getRank().name();
 
-			String[] keys = { "name", "karma", "bandate", "banlength" };
-			Object[] values = { name, karma, banDate, banLength };
+				String[] keys = { "name", "karma", "bandate", "banlength",
+						"rank" };
+				Object[] values = { name, karma, banDate, banLength, rank };
 
-			for (int i = 0; i < keys.length; i++) {
-				key = name + "." + keys[i];
-				value = values[i];
-				this.players.set(key, value);
+				for (int i = 0; i < keys.length; i++) {
+					key = name + "." + keys[i];
+					value = values[i];
+					this.players.set(key, value);
+				}
 			}
 		}
 		save();

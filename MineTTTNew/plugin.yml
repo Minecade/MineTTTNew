@@ -35,9 +35,15 @@ commands:
     load:
         description: Loads the config files
         usage: load
+    setrank:
+        description: Sets the player's rank.
+        usage: setadmin <player> <rank>    
+    addcoins:
+        description: Adds coins to the player's minecade account.
+        usage: addcoins <player> <numberOfCoins>
         
 permissions:
-    minettt.setarenaloction:
+    minettt.setarenalocation:
         default: op
     minettt.setlobbylocation:
         default: op
@@ -57,3 +63,7 @@ permissions:
         default: true
     minettt.load:
         default: op
+    minettt.setrank:
+        default: op
+    minettt.addcoins:
+        default: op    

@@ -100,7 +100,7 @@ public class DeathLocation {
 	 * @return The Player that killed in this location.
 	 */
 	public Player getKiller() {
-		Player player = Bukkit.getPlayer(this.killer);
+		Player player = Bukkit.getPlayerExact(this.killer);
 		return player;
 	}
 

@@ -1,6 +1,10 @@
 package src.main.java.de.orion304.ttt.main;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -27,6 +31,47 @@ public class Tools {
 			BlockFace.NORTH_WEST };
 
 	private static final double detectiveRange = 5;
+	private static final Random random = new Random();
+
+	/**
+	 * Returns a random object from the list.
+	 * 
+	 * @param list
+	 *            The list.
+	 * @return The random object, or null if the list is empty.
+	 */
+	public static <T> T chooseFromList(List<T> list) {
+		int i = chooseIndexFromList(list);
+		if (i >= 0) {
+			return list.get(i);
+		}
+		return null;
+	}
+
+	public static <T> T chooseFromSet(Set<T> set) {
+		List<T> list = new ArrayList<T>();
+		list.addAll(set);
+		return chooseFromList(list);
+	}
+
+	/**
+	 * Chooses a random index from the given list.
+	 * 
+	 * @param list
+	 *            The list.
+	 * @return The random index, from 0 to the list's size. Returns -1 if the
+	 *         list is empty.
+	 */
+	public static int chooseIndexFromList(List<?> list) {
+		int size = list.size();
+		if (size == 0) {
+			return -1;
+		}
+		if (size == 1) {
+			return 0;
+		}
+		return random.nextInt(size);
+	}
 
 	/**
 	 * Clears a player's inventory, including their armoring.

@@ -3,6 +3,7 @@ package src.main.java.de.orion304.ttt.main;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
@@ -25,10 +26,12 @@ import src.main.java.de.orion304.ttt.players.DeathLocation;
 import src.main.java.de.orion304.ttt.players.DetectiveCompass;
 import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
+import src.main.java.org.orion304.utils.Hologram;
+import src.main.java.org.orion304.utils.MathUtils;
 
 public class MainThread implements Runnable {
 
-	private static long preptime = FileManager.preparationTime;
+	private static long preptime = FileManager.preparationTime + 500L;
 
 	// Variables for use in processing
 	private final MineTTT plugin;
@@ -39,12 +42,15 @@ public class MainThread implements Runnable {
 	private ConcurrentHashMap<String, Location> arenaLocations = new ConcurrentHashMap<>();
 	private ConcurrentHashMap<String, List<String>> arenaLores = new ConcurrentHashMap<>();
 	private ConcurrentHashMap<String, ChatColor> arenaColors = new ConcurrentHashMap<>();
+	private final List<String> loadedArenaKeys = new ArrayList<>();
 	private Location arenaLocation, lobbyLocation;
 	private final double radius = 4.5;
 	private final Random random;
 
 	private GameState state = GameState.OFF;
-	private long time, starttime, lastannouncetime = (preptime - 1000) / 10000;
+	private long time, starttime, lastannouncetime = 0;
+
+	private final Hologram hologram, vipHologram;
 
 	/**
 	 * Creates a new MainThread for MineTTT, which handles anything to do with
@@ -58,8 +64,8 @@ public class MainThread implements Runnable {
 		this.server = Bukkit.getServer();
 		this.random = new Random();
 
-		preptime = FileManager.preparationTime;
-		this.lastannouncetime = (preptime - 1000) / 10000;
+		preptime = FileManager.preparationTime + 500L;
+		this.lastannouncetime = 0;
 		this.playerThreshold = FileManager.minimumNumberOfPlayers;
 
 		this.arenaLocations = this.plugin.fileManager.getArenaLocations();
@@ -71,6 +77,30 @@ public class MainThread implements Runnable {
 			this.lobbyLocation = this.server.getWorlds().get(0)
 					.getSpawnLocation();
 		}
+
+		String traitor = ChatColor.RED.toString() + ChatColor.ITALIC.toString()
+				+ ChatColor.BOLD + "Traitor";
+		String innocent = ChatColor.AQUA.toString()
+				+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Innocent";
+		String detective = ChatColor.DARK_AQUA.toString()
+				+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Detective";
+		String reset = ChatColor.RESET.toString() + ChatColor.BOLD.toString();
+
+		this.hologram = new Hologram(instance, ChatColor.GOLD.toString()
+				+ ChatColor.BOLD + ChatColor.UNDERLINE + "WELCOME TO MINETTT!",
+				" ",
+				reset + "MineTTT is a complex game about betrayal and trust!",
+				reset + "Be a " + detective + reset + " to hunt down "
+						+ traitor + "s!", reset + "Be a " + traitor + reset
+						+ " to eliminate " + innocent + "s" + reset + " and "
+						+ detective + "s!", reset + "Or be an " + innocent
+						+ reset + " to find, hide from, and eliminate "
+						+ traitor + "s!");
+		this.vipHologram = new Hologram(instance,
+				ChatColor.AQUA + "VIP PERKS:", "\u2022Two map votes",
+				"\u2022Double the tokens", "\u2022Join full servers",
+				"\u2022Choose your role", "\u2022Choose to spectate");
+		showHologram();
 	}
 
 	/**
@@ -101,6 +131,14 @@ public class MainThread implements Runnable {
 	}
 
 	/**
+	 * Destroys the holograms.
+	 */
+	public void destroyHologram() {
+		this.hologram.destroy();
+		this.vipHologram.destroy();
+	}
+
+	/**
 	 * Ends the game.
 	 * 
 	 * @param forced
@@ -117,7 +155,7 @@ public class MainThread implements Runnable {
 			traitorsWon = false;
 		}
 
-		String endMessage = "The game has ended! ";
+		String endMessage = ChatColor.BOLD + "The game has ended! ";
 		if (traitorsWon) {
 			endMessage = FileManager.traitorColor + endMessage;
 			endMessage += "The traitors were victorious!";
@@ -142,8 +180,26 @@ public class MainThread implements Runnable {
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			teleportPlayer(player, this.lobbyLocation);
 			player.setGameMode(GameMode.ADVENTURE);
+			player.setAllowFlight(false);
+			player.setLevel(0);
 			Tools.clearInventory(player);
+			TTTPlayer.giveLeaveItem(player);
+			TTTPlayer.giveStatsBook(player);
 			BarAPI.removeBar(player);
+			if (!forced) {
+				Bungee.disconnect(player);
+			}
+		}
+
+		reloadHologram();
+
+		if (!forced) {
+			// new BukkitRunnable() {
+			// @Override
+			// public void run() {
+			// Bukkit.getServer().shutdown();
+			// }
+			// }.runTaskLater(this.plugin, 8 * 20);
 		}
 
 	}
@@ -232,6 +288,15 @@ public class MainThread implements Runnable {
 	}
 
 	/**
+	 * Gets the keys of the 4 loaded arenas.
+	 * 
+	 * @return
+	 */
+	public List<String> getLoadedArenaKeys() {
+		return this.loadedArenaKeys;
+	}
+
+	/**
 	 * Gets the lobby location.
 	 * 
 	 * @return The location of the lobby.
@@ -254,9 +319,8 @@ public class MainThread implements Runnable {
 			}
 			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
 			if (Tplayer.getTeam() == PlayerTeam.NONE) {
-				if (player.getGameMode() != GameMode.CREATIVE
-						&& Tplayer.canSpectate()) {
-					player.setGameMode(GameMode.CREATIVE);
+				if (!player.getAllowFlight() && Tplayer.canSpectate()) {
+					player.setAllowFlight(true);
 					player.closeInventory();
 					Tools.clearInventory(player);
 					Tplayer.resetPlayer();
@@ -289,6 +353,17 @@ public class MainThread implements Runnable {
 		board.clearSlot(DisplaySlot.SIDEBAR);
 	}
 
+	public void load4Arenas() {
+		Set<String> set = getArenaLocations().keySet();
+		List<String> list = new ArrayList<>(set);
+		this.loadedArenaKeys.clear();
+		for (int i = 0; i < 4; i++) {
+			String arena = MathUtils.randomChoiceFromCollection(list);
+			list.remove(arena);
+			this.loadedArenaKeys.add(arena);
+		}
+	}
+
 	/**
 	 * Forces each player to be able to see the other.
 	 */
@@ -301,6 +376,11 @@ public class MainThread implements Runnable {
 				}
 			}
 		}
+	}
+
+	public void reloadHologram() {
+		destroyHologram();
+		showHologram();
 	}
 
 	/**
@@ -365,6 +445,19 @@ public class MainThread implements Runnable {
 		this.lobbyLocation = location;
 		this.plugin.fileManager.setLobbyLocation(location);
 
+	}
+
+	/**
+	 * Displays the holograms.
+	 */
+	public void showHologram() {
+		Location location = this.lobbyLocation.clone();
+		location.add(-1, 1.5, 7);
+		this.hologram.show(location);
+
+		Location vipLocation = this.lobbyLocation.clone();
+		vipLocation.add(-10, 1.5, 15);
+		this.vipHologram.show(vipLocation);
 	}
 
 	/**
@@ -440,6 +533,7 @@ public class MainThread implements Runnable {
 	 */
 	public void startPreparations() {
 		makeAllVisible();
+		load4Arenas();
 		TTTPlayer.resetScoreboards();
 		if (this.arenaLocations.isEmpty()) {
 			Tools.verbose("Game cannot start - there is no arena location created.");
@@ -447,9 +541,6 @@ public class MainThread implements Runnable {
 		}
 		this.state = GameState.GAME_PREPARING;
 		this.starttime = this.time;
-		long duration = preptime / 1000L;
-		this.server.broadcastMessage(ChatColor.LIGHT_PURPLE
-				+ "The game will begin in " + duration + " seconds!");
 
 		for (Player player : this.server.getOnlinePlayers()) {
 			teleportPlayer(player, this.lobbyLocation);
