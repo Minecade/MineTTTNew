@@ -923,6 +923,12 @@ public class TTTPlayer {
 	private boolean spectating = false, chooseTraitor = false,
 			chooseDetective = false, chooseInnocent = false;
 
+	// Stores all values except for when you're an innocent
+	private final Map<PlayerTeam, Integer> killMap = new HashMap<>();
+	// The one value for innocent kills
+	private int traitorKillsAsInnocent = 0;
+	private int gamesPlayed = 0;
+
 	/**
 	 * Creats a new TTTPlayer with this player's name.
 	 * 
@@ -932,6 +938,9 @@ public class TTTPlayer {
 	public TTTPlayer(String name) {
 		this.playerName = name;
 		players.put(this.playerName, this);
+		this.killMap.put(PlayerTeam.TRAITOR, 0);
+		this.killMap.put(PlayerTeam.DETECTIVE, 0);
+		this.killMap.put(PlayerTeam.INNOCENT, 0);
 	}
 
 	/**
@@ -947,7 +956,8 @@ public class TTTPlayer {
 	 *            The ban length of the player.
 	 */
 	public TTTPlayer(String name, int karma, long banDate, long banLength,
-			String rank) {
+			String rank, int traitorKills, int detectiveKills,
+			int innocentKills, int traitorKillsAsInnocent, int gamesPlayed) {
 		this(name);
 		this.karma = karma;
 		this.banDate = banDate;
@@ -956,6 +966,11 @@ public class TTTPlayer {
 		if (this.rank == null) {
 			this.rank = Rank.NONE;
 		}
+		this.killMap.put(PlayerTeam.TRAITOR, traitorKills);
+		this.killMap.put(PlayerTeam.DETECTIVE, detectiveKills);
+		this.killMap.put(PlayerTeam.INNOCENT, innocentKills);
+		this.traitorKillsAsInnocent = traitorKillsAsInnocent;
+		this.gamesPlayed = gamesPlayed;
 	}
 
 	/**
@@ -1358,17 +1373,18 @@ public class TTTPlayer {
 		meta.setDisplayName(statsLabel);
 		String page1 = "Your Stats:\n";
 		page1 += "Karma: " + this.karma + "\n";
-		page1 += "Games played: " + 0 + "\n";
+		page1 += "Games played: " + this.gamesPlayed + "\n";
 		page1 += "\n";
 		page1 += "Innocent Kills:\n";
-		page1 += " Traitors: " + 0 + "\n";
+		page1 += " Traitors: " + this.traitorKillsAsInnocent + "\n";
 		page1 += "\n";
 		page1 += "Detective Kills:\n";
-		page1 += " Traitors: " + 0 + "\n";
+		page1 += " Traitors: " + this.killMap.get(PlayerTeam.TRAITOR) + "\n";
 		page1 += "\n";
 		page1 += "Traitor Kills:\n";
-		page1 += " Innocents: " + 0 + "\n";
-		page1 += " Detectives: " + 0 + "\n";
+		page1 += " Innocents: " + this.killMap.get(PlayerTeam.INNOCENT) + "\n";
+		page1 += " Detectives: " + this.killMap.get(PlayerTeam.DETECTIVE)
+				+ "\n";
 		meta.addPage(page1);
 		item.setItemMeta(meta);
 
@@ -1618,8 +1634,22 @@ public class TTTPlayer {
 		this.account = plugin.minecade.getMinecadeAccount(this.playerName);
 		Player p = getPlayer();
 		if (p != null) {
-			p.setOp(this.account.isAdmin());
+			p.setOp(this.rank.getTier() >= 3);
 		}
+	}
+
+	public void logKill(PlayerTeam cause) {
+		plugin.fileManager.logKill(this, cause);
+		if (getTeam() == PlayerTeam.INNOCENT && cause == PlayerTeam.TRAITOR) {
+			this.traitorKillsAsInnocent++;
+		} else {
+			this.killMap.put(cause, this.killMap.get(cause) + 1);
+		}
+	}
+
+	private void logPlayedGame() {
+		this.plugin.fileManager.logPlayedGame(this);
+
 	}
 
 	/**
@@ -1849,6 +1879,8 @@ public class TTTPlayer {
 		this.chooseDetective = false;
 		this.chooseInnocent = false;
 		this.chooseTraitor = false;
+		this.gamesPlayed++;
+		logPlayedGame();
 		resetScoreboard();
 	}
 

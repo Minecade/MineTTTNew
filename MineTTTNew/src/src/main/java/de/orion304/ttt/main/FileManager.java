@@ -14,6 +14,7 @@ import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
 import src.main.java.de.orion304.ttt.properties.ConfigProperty;
 
@@ -312,7 +313,8 @@ public class FileManager {
 			rank = this.players.getString(player + ".rank", "NONE");
 
 			if (name != null) {
-				new TTTPlayer(name, karma, bandate, banlength, rank);
+				new TTTPlayer(name, karma, bandate, banlength, rank, 0, 0, 0,
+						0, 0);
 			}
 
 		}
@@ -443,6 +445,18 @@ public class FileManager {
 					e.printStackTrace();
 				}
 			}
+		}
+	}
+
+	public void logKill(TTTPlayer Tplayer, PlayerTeam kill) {
+		if (UsePlayerSQL) {
+			this.database.logKill(Tplayer, kill);
+		}
+	}
+
+	public void logPlayedGame(TTTPlayer Tplayer) {
+		if (UsePlayerSQL) {
+			this.database.logPlayedGame(Tplayer);
 		}
 	}
 

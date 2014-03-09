@@ -8,16 +8,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
+import org.bukkit.FireworkEffect;
+import org.bukkit.FireworkEffect.Type;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Scoreboard;
 
@@ -48,7 +54,9 @@ public class MainThread implements Runnable {
 	private final Random random;
 
 	private GameState state = GameState.OFF;
-	private long time, starttime, lastannouncetime = 0;
+	private long time, starttime, lastannouncetime = 0, celebrationStartTime;
+	private long fireworkTick = 0;
+	private boolean traitorsWon = false;
 
 	private final Hologram hologram, vipHologram;
 
@@ -134,8 +142,8 @@ public class MainThread implements Runnable {
 	 * Destroys the holograms.
 	 */
 	public void destroyHologram() {
-		this.hologram.destroy();
-		this.vipHologram.destroy();
+		// this.hologram.destroy();
+		// this.vipHologram.destroy();
 	}
 
 	/**
@@ -146,17 +154,19 @@ public class MainThread implements Runnable {
 	 *            by completing its normal course.
 	 */
 	public void endGame(boolean forced) {
-		this.state = GameState.OFF;
+		this.state = GameState.CELEBRATIONS;
+		this.fireworkTick = 0;
+		this.celebrationStartTime = System.currentTimeMillis();
 		this.plugin.playerListener.resetDeadPlayers();
 		makeAllVisible();
 		killScoreboard();
-		boolean traitorsWon = true;
+		this.traitorsWon = true;
 		if (TTTPlayer.getNumberOfTraitors() == 0) {
-			traitorsWon = false;
+			this.traitorsWon = false;
 		}
 
 		String endMessage = ChatColor.BOLD + "The game has ended! ";
-		if (traitorsWon) {
+		if (this.traitorsWon) {
 			endMessage = FileManager.traitorColor + endMessage;
 			endMessage += "The traitors were victorious!";
 		} else {
@@ -166,41 +176,15 @@ public class MainThread implements Runnable {
 
 		if (!forced) {
 			Bukkit.broadcastMessage(endMessage);
+		} else {
+			this.celebrationStartTime = 0;
 		}
 		TTTPlayer.distributeCoinsToAll();
 		TempBlock.revertAll();
 		DeathLocation.reset();
 		clearDrops();
 		clearInventories();
-		TTTPlayer.dealKarma();
-		TTTPlayer.reset();
-		TTTPlayer.showAllPreGameScoreboards();
 		Claymore.reset();
-
-		for (Player player : Bukkit.getOnlinePlayers()) {
-			teleportPlayer(player, this.lobbyLocation);
-			player.setGameMode(GameMode.ADVENTURE);
-			player.setAllowFlight(false);
-			player.setLevel(0);
-			Tools.clearInventory(player);
-			TTTPlayer.giveLeaveItem(player);
-			TTTPlayer.giveStatsBook(player);
-			BarAPI.removeBar(player);
-			if (!forced) {
-				Bungee.disconnect(player);
-			}
-		}
-
-		reloadHologram();
-
-		if (!forced) {
-			// new BukkitRunnable() {
-			// @Override
-			// public void run() {
-			// Bukkit.getServer().shutdown();
-			// }
-			// }.runTaskLater(this.plugin, 8 * 20);
-		}
 
 	}
 
@@ -214,6 +198,54 @@ public class MainThread implements Runnable {
 	 */
 	public void findKiller(Player detective, Player killer) {
 		new DetectiveCompass(detective, killer);
+	}
+
+	private void fireFirework(Location location) {
+		Firework fw = (Firework) location.getWorld().spawnEntity(location,
+				EntityType.FIREWORK);
+		FireworkMeta fwm = fw.getFireworkMeta();
+		// Our random generator
+		Random r = new Random();
+
+		// Get the type
+		int rt = r.nextInt(5) + 1;
+		Type type = Type.BALL;
+		if (rt == 1) {
+			type = Type.BALL;
+		}
+		if (rt == 2) {
+			type = Type.BALL_LARGE;
+		}
+		if (rt == 3) {
+			type = Type.BURST;
+		}
+		if (rt == 4) {
+			type = Type.CREEPER;
+		}
+		if (rt == 5) {
+			type = Type.STAR;
+		}
+
+		// Get our random colours
+		int r1i = r.nextInt(17) + 1;
+		int r2i = r.nextInt(17) + 1;
+		Color c1 = getColor(r1i);
+		Color c2 = getColor(r2i);
+
+		// Create our effect with this
+		FireworkEffect effect = FireworkEffect.builder()
+				.flicker(r.nextBoolean()).withColor(c1).withFade(c2).with(type)
+				.trail(r.nextBoolean()).build();
+
+		// Then apply the effect to the meta
+		fwm.addEffect(effect);
+
+		// Generate some random power and set it
+		int rp = r.nextInt(2) + 1;
+		fwm.setPower(rp);
+
+		// Then apply this to our rocket
+		fw.setFireworkMeta(fwm);
 	}
 
 	/**
@@ -269,6 +301,63 @@ public class MainThread implements Runnable {
 		return lore;
 	}
 
+	private Color getColor(int i) {
+		Color c = null;
+		if (i == 1) {
+			c = Color.AQUA;
+		}
+		if (i == 2) {
+			c = Color.BLACK;
+		}
+		if (i == 3) {
+			c = Color.BLUE;
+		}
+		if (i == 4) {
+			c = Color.FUCHSIA;
+		}
+		if (i == 5) {
+			c = Color.GRAY;
+		}
+		if (i == 6) {
+			c = Color.GREEN;
+		}
+		if (i == 7) {
+			c = Color.LIME;
+		}
+		if (i == 8) {
+			c = Color.MAROON;
+		}
+		if (i == 9) {
+			c = Color.NAVY;
+		}
+		if (i == 10) {
+			c = Color.OLIVE;
+		}
+		if (i == 11) {
+			c = Color.ORANGE;
+		}
+		if (i == 12) {
+			c = Color.PURPLE;
+		}
+		if (i == 13) {
+			c = Color.RED;
+		}
+		if (i == 14) {
+			c = Color.SILVER;
+		}
+		if (i == 15) {
+			c = Color.TEAL;
+		}
+		if (i == 16) {
+			c = Color.WHITE;
+		}
+		if (i == 17) {
+			c = Color.YELLOW;
+		}
+
+		return c;
+	}
+
 	/**
 	 * Gets the arena which is currently in use.
 	 * 
@@ -303,6 +392,66 @@ public class MainThread implements Runnable {
 	 */
 	public Location getLobbyLocation() {
 		return this.lobbyLocation;
+	}
+
+	private void handleCelebrations() {
+		long delta = System.currentTimeMillis() - this.celebrationStartTime;
+
+		if (this.celebrationStartTime != 0) {
+			handleSpectators();
+		}
+
+		if (delta >= 10000L || this.celebrationStartTime == 0) {
+			boolean forced = this.celebrationStartTime == 0;
+			this.state = GameState.OFF;
+			TTTPlayer.dealKarma();
+			TTTPlayer.reset();
+			TTTPlayer.showAllPreGameScoreboards();
+			for (Player player : Bukkit.getOnlinePlayers()) {
+				teleportPlayer(player, this.lobbyLocation);
+				player.setGameMode(GameMode.ADVENTURE);
+				player.setAllowFlight(false);
+				player.setLevel(0);
+				Tools.clearInventory(player);
+				TTTPlayer.giveLeaveItem(player);
+				TTTPlayer.giveStatsBook(player);
+				BarAPI.removeBar(player);
+				if (!forced) {
+					Bungee.disconnect(player);
+				}
+
+			}
+
+			reloadHologram();
+			this.celebrationStartTime = 0;
+
+			if (!forced) {
+				// new BukkitRunnable() {
+				// @Override
+				// public void run() {
+				// Bukkit.getServer().shutdown();
+				// }
+				// }.runTaskLater(this.plugin, 10 * 20);
+			}
+
+		}
+
+		if (delta / 500 > this.fireworkTick) {
+			this.fireworkTick = delta / 500;
+			for (Player player : Bukkit.getOnlinePlayers()) {
+				TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
+				if (Tplayer.getTeam() == PlayerTeam.NONE) {
+					continue;
+				}
+
+				if (Tplayer.getTeam() == PlayerTeam.TRAITOR && this.traitorsWon) {
+					fireFirework(player.getLocation());
+				} else {
+					fireFirework(player.getLocation());
+				}
+			}
+		}
+
 	}
 
 	/**
@@ -342,7 +491,8 @@ public class MainThread implements Runnable {
 	 * @return True if the game is running.
 	 */
 	public boolean isGameRunning() {
-		return this.state == GameState.GAME_RUNNING;
+		return this.state == GameState.GAME_RUNNING
+				|| this.state == GameState.CELEBRATIONS;
 	}
 
 	/**
@@ -418,6 +568,9 @@ public class MainThread implements Runnable {
 			DetectiveCompass.progressAll();
 			handleSpectators();
 			break;
+		case CELEBRATIONS:
+			handleCelebrations();
+			break;
 		}
 
 	}
@@ -453,11 +606,11 @@ public class MainThread implements Runnable {
 	public void showHologram() {
 		Location location = this.lobbyLocation.clone();
 		location.add(-1, 1.5, 7);
-		this.hologram.show(location);
+		// this.hologram.show(location);
 
 		Location vipLocation = this.lobbyLocation.clone();
 		vipLocation.add(-10, 1.5, 15);
-		this.vipHologram.show(vipLocation);
+		// this.vipHologram.show(vipLocation);
 	}
 
 	/**
@@ -586,6 +739,8 @@ public class MainThread implements Runnable {
 
 		}
 		player.teleport(loc);
+
+		reloadHologram();
 
 	}
 

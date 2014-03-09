@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
 import src.main.java.org.orion304.SQLHandler;
 
@@ -30,7 +31,7 @@ public class LocalDatabase {
 			ResultSet set = this.handler.get(statement);
 			if (!set.first()) {
 				statement = this.handler
-						.getStatement("CREATE TABLE players(username VARCHAR(16), karma INT, banDate BIGINT, banDuration BIGINT, rank VARCHAR(16));");
+						.getStatement("CREATE TABLE players(username VARCHAR(16), karma INT, banDate BIGINT, banDuration BIGINT, rank VARCHAR(16), traitorKillsAsInnocent INT, traitorKillsAsDetective INT, detectiveKills INT, innocentKills INT, gamesPlayed INT);");
 				this.handler.update(statement);
 			}
 			this.handler
@@ -39,6 +40,16 @@ public class LocalDatabase {
 					.update("ALTER TABLE players ALTER banDate SET DEFAULT 0;");
 			this.handler
 					.update("ALTER TABLE players ALTER banDuration SET DEFAULT 0;");
+			this.handler
+					.update("ALTER TABLE players ALTER gamesPlayed SET DEFAULT 0;");
+			this.handler
+					.update("ALTER TABLE players ALTER traitorKillsAsInnocent SET DEFAULT 0;");
+			this.handler
+					.update("ALTER TABLE players ALTER traitorKillsAsDetective SET DEFAULT 0;");
+			this.handler
+					.update("ALTER TABLE players ALTER innocentKills SET DEFAULT 0;");
+			this.handler
+					.update("ALTER TABLE players ALTER detectiveKills SET DEFAULT 0;");
 			statement = this.handler
 					.getStatement("ALTER TABLE players ALTER rank SET DEFAULT ?;");
 			statement.setString(1, "NONE");
@@ -57,7 +68,62 @@ public class LocalDatabase {
 				long banDate = set.getLong("banDate");
 				long banDuration = set.getLong("banDuration");
 				String rank = set.getString("rank");
-				new TTTPlayer(username, karma, banDate, banDuration, rank);
+				int traitorKillsAsInnocent = set
+						.getInt("traitorKillsAsInnocent");
+				int traitorKillsAsDetective = set
+						.getInt("traitorKillsAsDetective");
+				int detectiveKills = set.getInt("detectiveKills");
+				int innocentKills = set.getInt("innocentKills");
+				int gamesPlayed = set.getInt("playedGames");
+				new TTTPlayer(username, karma, banDate, banDuration, rank,
+						traitorKillsAsDetective, detectiveKills, innocentKills,
+						traitorKillsAsInnocent, gamesPlayed);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void logKill(TTTPlayer Tplayer, PlayerTeam kill) {
+		String username = Tplayer.getName();
+		try {
+			PreparedStatement statement = this.handler
+					.getStatement("SELECT * FROM players where username=?;");
+			statement.setString(1, username);
+			ResultSet result = this.handler.get(statement);
+			String killColumn = "traitorKillsAsDetective";
+			if (Tplayer.getTeam() == PlayerTeam.INNOCENT) {
+				killColumn = "traitorKillsAsInnocent";
+			}
+			if (kill == PlayerTeam.DETECTIVE) {
+				killColumn = "detectiveKills";
+			} else if (kill == PlayerTeam.INNOCENT) {
+				killColumn = "innocentKills";
+			}
+			if (result.first()) {
+				statement = this.handler.getStatement("UPDATE players SET "
+						+ killColumn + "=" + killColumn
+						+ "+1 WHERE username=?;");
+				statement.setString(1, username);
+				this.handler.update(statement);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void logPlayedGame(TTTPlayer Tplayer) {
+		String username = Tplayer.getName();
+		try {
+			PreparedStatement statement = this.handler
+					.getStatement("SELECT * FROM players WHERE username=?;");
+			statement.setString(1, username);
+			ResultSet result = this.handler.get(statement);
+			if (result.first()) {
+				statement = this.handler
+						.getStatement("UPDATE players SET gamesPlayed=gamesPlayed+1 WHERE username=?;");
+				statement.setString(1, username);
+				this.handler.update(statement);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

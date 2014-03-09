@@ -49,6 +49,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import src.main.java.de.orion304.ttt.main.ChatManager;
 import src.main.java.de.orion304.ttt.main.FileManager;
+import src.main.java.de.orion304.ttt.main.GameState;
 import src.main.java.de.orion304.ttt.main.MineTTT;
 import src.main.java.de.orion304.ttt.main.TempBlock;
 import src.main.java.de.orion304.ttt.main.Tools;
@@ -117,8 +118,10 @@ public class PlayerListener implements Listener {
 	 * 
 	 * @param player
 	 */
-	private void giveNugget(Player player) {
+	private void giveNugget(Player player, PlayerTeam cause) {
 		player.getInventory().addItem(nugget);
+		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
+		Tplayer.logKill(cause);
 	}
 
 	//
@@ -190,6 +193,9 @@ public class PlayerListener implements Listener {
 	public void onEntityDamage(EntityDamageEvent event) {
 		if (event.getCause() == DamageCause.THORNS
 				|| event.getCause() == DamageCause.FALL) {
+			event.setCancelled(true);
+		}
+		if (this.plugin.thread.getGameStatus() == GameState.CELEBRATIONS) {
 			event.setCancelled(true);
 		}
 	}
@@ -410,7 +416,7 @@ public class PlayerListener implements Listener {
 
 				if ((damagerTeam != PlayerTeam.TRAITOR && playerTeam == PlayerTeam.TRAITOR)) {
 					Tplayer.addKarma();
-					giveNugget(recentDamager);
+					giveNugget(recentDamager, PlayerTeam.TRAITOR);
 					recentDamager.sendMessage(ChatColor.GOLD.toString()
 							+ ChatColor.ITALIC
 							+ "You got 1 gold nugget for taking down a "
@@ -421,7 +427,7 @@ public class PlayerListener implements Listener {
 				if (damagerTeam == PlayerTeam.TRAITOR
 						&& playerTeam != PlayerTeam.TRAITOR) {
 					TrecentDamager.addKarma();
-					giveNugget(recentDamager);
+					giveNugget(recentDamager, playerTeam);
 					String roleName = FileManager.innocentColor
 							+ playerTeam.toString() + ChatColor.RESET;
 					if (playerTeam == PlayerTeam.DETECTIVE) {
