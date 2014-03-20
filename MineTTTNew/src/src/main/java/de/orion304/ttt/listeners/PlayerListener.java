@@ -27,7 +27,6 @@ import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -189,10 +188,15 @@ public class PlayerListener implements Listener {
 		TTTPlayer.handleBlockPlace(player, event.getBlock());
 	}
 
+	/**
+	 * Cancels damage from cactii and falling, and any damage during
+	 * celebrations.
+	 * 
+	 * @param event
+	 */
 	@EventHandler
 	public void onEntityDamage(EntityDamageEvent event) {
-		if (event.getCause() == DamageCause.THORNS
-				|| event.getCause() == DamageCause.FALL) {
+		if (!this.plugin.thread.isGameRunning()) {
 			event.setCancelled(true);
 		}
 		if (this.plugin.thread.getGameStatus() == GameState.CELEBRATIONS) {
@@ -237,6 +241,11 @@ public class PlayerListener implements Listener {
 
 			double newdamage = Tdealer.getDamage(player, damage,
 					event.getCause());
+
+			Hologram damageDisplay = new Hologram(this.plugin, ChatColor.RED
+					+ "-" + (int) newdamage + "HP");
+			damageDisplay.show(player.getEyeLocation().add(0, -.5, 0), 30L,
+					damager);
 
 			if (newdamage != event.getDamage()) {
 				event.setCancelled(true);
@@ -314,8 +323,9 @@ public class PlayerListener implements Listener {
 	 */
 	@EventHandler
 	public void onInventoryOpen(InventoryOpenEvent event) {
-		InventoryHolder holder = event.getInventory().getHolder();
+		// Tools.verbose("Openned!");
 		if (this.plugin.thread.isGameRunning()) {
+			InventoryHolder holder = event.getInventory().getHolder();
 			if (!(event.getPlayer() instanceof Player)) {
 				Tools.verbose("not a player?");
 				return;
@@ -323,13 +333,19 @@ public class PlayerListener implements Listener {
 			Player p = (Player) event.getPlayer();
 			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(p);
 			if (Tplayer.getTeam() == PlayerTeam.NONE) {
-				event.setCancelled(true);
-				p.closeInventory();
+				// Tplayer.giveSpectatorInventory();
+				// event.setCancelled(true);
+				// p.closeInventory();
 				return;
 			}
-		}
-		if (holder instanceof Chest) {
-			this.plugin.chestHandler.handleChest((Chest) holder);
+			if (holder instanceof Chest) {
+				if (Tplayer.getTeam() == PlayerTeam.NONE) {
+					event.setCancelled(true);
+					p.closeInventory();
+					return;
+				}
+				this.plugin.chestHandler.handleChest((Chest) holder);
+			}
 		}
 
 	}
@@ -542,6 +558,7 @@ public class PlayerListener implements Listener {
 	@EventHandler
 	public void onPlayerLogin(PlayerLoginEvent event) {
 		String name = event.getPlayer().getName();
+		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(name);
 		if (this.plugin.minecade.isPlayerBanned(name)) {
 			event.disallow(Result.KICK_BANNED,
 					"You have been banned from all Minecade servers.");
@@ -550,6 +567,11 @@ public class PlayerListener implements Listener {
 		if (TTTPlayer.isBanned(name)) {
 			event.disallow(Result.KICK_BANNED,
 					"Your karma dropped too low, you are banned for 5 minutes!");
+			return;
+		}
+		if (event.getResult() == Result.KICK_FULL
+				&& Tplayer.canJoinFullServer()) {
+			event.allow();
 		}
 	}
 
@@ -592,8 +614,7 @@ public class PlayerListener implements Listener {
 	}
 
 	/**
-	 * This method does nothing since having players be "asleep" while dead
-	 * didn't work out.
+	 * This method clears all the holograms of dead players.
 	 */
 	public void resetDeadPlayers() {
 		for (Player player : this.deadPlayers) {
@@ -606,6 +627,14 @@ public class PlayerListener implements Listener {
 		this.holograms.clear();
 	}
 
+	/**
+	 * Spawns a skull and hologram of a dead player
+	 * 
+	 * @param player
+	 *            The player's skull to spawn
+	 * @param block
+	 *            The block to spawn the skull on
+	 */
 	private void spawnSkull(Player player, Block block) {
 		new TempBlock(block, Material.SKULL);
 		BlockState state = block.getState();
@@ -617,7 +646,7 @@ public class PlayerListener implements Listener {
 		Hologram hologram = new Hologram(this.plugin, "Here lies "
 				+ player.getDisplayName());
 		Location location = block.getLocation().clone();
-		location.add(0, 2, 0);
+		location.add(0, 1, 0);
 		hologram.show(location);
 		this.holograms.add(hologram);
 	}

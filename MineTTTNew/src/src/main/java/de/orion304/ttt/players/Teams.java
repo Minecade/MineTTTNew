@@ -175,7 +175,9 @@ public class Teams {
 	 *            The team to set the player to.
 	 */
 	public void setTeam(Player player, PlayerTeam team) {
-		TTTPlayer.getTTTPlayer(player).setTeam(team);
+		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
+		Tplayer.setTeam(team);
+		Tplayer.logPlayedGame();
 	}
 
 }

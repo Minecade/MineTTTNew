@@ -28,6 +28,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.DisplaySlot;
@@ -48,7 +49,7 @@ import src.main.java.de.orion304.ttt.minecade.MinecadeAccount;
 
 public class TTTPlayer {
 
-	public class VoteInfo {
+	public static class VoteInfo {
 		public int voteCount = 0;
 		public OfflinePlayer display;
 
@@ -66,7 +67,6 @@ public class TTTPlayer {
 	private static long speedBoostCooldown = 30 * 1000L;
 
 	private static Random random = new Random();
-	private static final String whitespace = "                   ";
 
 	private static OfflinePlayer standardDetectiveLabel = Bukkit
 			.getOfflinePlayer(FileManager.detectiveColor + "Detectives:"),
@@ -87,7 +87,7 @@ public class TTTPlayer {
 			.getOfflinePlayer(ChatColor.GREEN + "Karma");
 
 	private static final OfflinePlayer butterCoinsLabel = Bukkit
-			.getOfflinePlayer(ChatColor.GOLD + "Tokens");
+			.getOfflinePlayer(ChatColor.GOLD + "Coins");
 
 	public static final String trustLabel = "Proclaim your trust",
 			suspectLabel = "Express your suspiscion",
@@ -418,6 +418,9 @@ public class TTTPlayer {
 				i++;
 			}
 		}
+		if (choices.isEmpty()) {
+			choices.addAll(locations.values());
+		}
 		int choice = random.nextInt(choices.size());
 		return choices.get(choice);
 
@@ -433,6 +436,12 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Gives the player the item they can click on to disconnect via Bungee.
+	 * 
+	 * @param player
+	 *            The player to give the item to
+	 */
 	public static void giveLeaveItem(Player player) {
 		ItemStack item = new ItemStack(Material.NETHER_STAR, 1);
 		ItemMeta meta = item.getItemMeta();
@@ -443,6 +452,23 @@ public class TTTPlayer {
 		inventory.setItem(8, item);
 	}
 
+	/**
+	 * Gives all spectators inventory items to teleport.
+	 */
+	public static void giveSpectatingItems() {
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = getTTTPlayer(player);
+			if (Tplayer.getTeam() == PlayerTeam.NONE) {
+				Tplayer.giveSpectatorInventory();
+			}
+		}
+	}
+
+	/**
+	 * Gives the player a book with all their recorded stats.
+	 * 
+	 * @param player
+	 */
 	public static void giveStatsBook(Player player) {
 		TTTPlayer Tplayer = getTTTPlayer(player);
 		Tplayer.giveStatsBook();
@@ -580,6 +606,7 @@ public class TTTPlayer {
 			return Tplayer.vote(item);
 		case GAME_RUNNING:
 			if (Tplayer.getTeam() == PlayerTeam.NONE) {
+				Tplayer.handleSpecatatorTeleport(item);
 				return true;
 			}
 			if (slotType == SlotType.CONTAINER) {
@@ -632,7 +659,7 @@ public class TTTPlayer {
 			return;
 		}
 
-		plugin.thread.reloadHologram();
+		player.getInventory().clear();
 		player.teleport(plugin.thread.getLobbyLocation());
 		GameState state = plugin.thread.getGameStatus();
 		TTTPlayer Tplayer = getTTTPlayer(player);
@@ -655,10 +682,12 @@ public class TTTPlayer {
 			}
 			giveLeaveItem(player);
 			Tplayer.giveStatsBook();
+			plugin.thread.reloadHologram();
 			break;
 		case GAME_PREPARING:
 			Tplayer.showPrepScoreboard();
 			Tplayer.installVoteTools();
+			plugin.thread.reloadHologram();
 			break;
 		case GAME_RUNNING:
 			allRegisterPlayer(player);
@@ -698,6 +727,19 @@ public class TTTPlayer {
 			TTTPlayer Tplayer = getTTTPlayer(player);
 			Tplayer.installVoteTools();
 		}
+	}
+
+	/**
+	 * Places a key into the votes map, so that the scoreboard can properly call
+	 * it even with 0 votes.
+	 * 
+	 * @param string
+	 *            The key to place
+	 */
+	public static void installVoteKey(String string) {
+		VoteInfo info = new VoteInfo(Bukkit.getOfflinePlayer(string));
+		votes.put(string, info);
+		Tools.verbose(string);
 	}
 
 	/**
@@ -779,6 +821,14 @@ public class TTTPlayer {
 	}
 
 	/**
+	 * Clears the votes map so the scoreboard can be refreshed with new maps.
+	 */
+	public static void resetVoteKeys() {
+		votes.clear();
+
+	}
+
+	/**
 	 * Sets the level of all players - used in countdown timers.
 	 * 
 	 * @param level
@@ -839,6 +889,8 @@ public class TTTPlayer {
 		int traitors = TTTPlayer.getNumberOfTraitors();
 		int innocents = TTTPlayer.getNumberOfInnocents();
 
+		giveSpectatingItems();
+
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
 			Tplayer.showGameScoreboard(detectives, traitors, innocents);
@@ -862,7 +914,7 @@ public class TTTPlayer {
 		HashMap<OfflinePlayer, Integer> numberOfVotes = new HashMap<>();
 		for (String key : votes.keySet()) {
 			VoteInfo info = votes.get(key);
-			if (info.voteCount > 0) {
+			if (info.voteCount >= 0) {
 				numberOfVotes.put(info.display, info.voteCount);
 			}
 		}
@@ -918,15 +970,16 @@ public class TTTPlayer {
 
 	private final List<SpecialItem> traitorShop = new ArrayList<>();
 
+	private final List<SpecialItem> detectiveShop = new ArrayList<>();
 	private final List<SpecialItem> ownedItems = new ArrayList<>();
 
 	private boolean spectating = false, chooseTraitor = false,
 			chooseDetective = false, chooseInnocent = false;
-
 	// Stores all values except for when you're an innocent
 	private final Map<PlayerTeam, Integer> killMap = new HashMap<>();
 	// The one value for innocent kills
 	private int traitorKillsAsInnocent = 0;
+
 	private int gamesPlayed = 0;
 
 	/**
@@ -1059,22 +1112,58 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Checks if the player can choose the detective role.
+	 * 
+	 * @return
+	 */
 	private boolean canChooseDetective() {
-		if (this.rank.getTier() >= 2) {
+		if (this.rank.getTier() >= 1) {
 			return true;
 		}
 		return false;
 	}
 
+	/**
+	 * Checks if the player can choose the innocent role.
+	 * 
+	 * @return
+	 */
 	private boolean canChooseInnocent() {
-		if (this.rank.getTier() >= 2) {
+		if (this.rank.getTier() >= 1) {
 			return true;
 		}
 		return false;
 	}
 
+	/**
+	 * Checks if the player can choose the traitor role.
+	 * 
+	 * @return
+	 */
 	private boolean canChooseTraitor() {
-		if (this.rank.getTier() >= 2) {
+		if (this.rank.getTier() >= 1) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Checks whether the player gets double the coins from a nugget
+	 * 
+	 * @return
+	 */
+	private boolean canGetDoubleCoins() {
+		return this.rank.getTier() >= 1;
+	}
+
+	/**
+	 * Checks whether the player can join a full server.
+	 * 
+	 * @return True if they can join.
+	 */
+	public boolean canJoinFullServer() {
+		if (this.rank.getTier() >= 1) {
 			return true;
 		}
 		return false;
@@ -1086,7 +1175,7 @@ public class TTTPlayer {
 	 * @return True if the player can spectate.
 	 */
 	public boolean canSpectate() {
-		if (this.rank.getTier() > 1) {
+		if (this.rank.getTier() >= 1) {
 			return true;
 		}
 		return false;
@@ -1108,6 +1197,9 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Clears the player's choices of roles, for use during resets.
+	 */
 	private void clearChoices() {
 		this.chooseTraitor = false;
 		this.chooseDetective = false;
@@ -1136,10 +1228,13 @@ public class TTTPlayer {
 		}
 		player.getInventory().removeItem(
 				toRemove.toArray(new ItemStack[toRemove.size()]));
+		if (canGetDoubleCoins()) {
+			coins *= 2;
+		}
 		plugin.minecade.addCoins(this.playerName, coins);
 		if (coins != 0) {
 			player.sendMessage(ChatColor.GOLD.toString() + ChatColor.ITALIC
-					+ "You earned " + coins + " tokens!");
+					+ "You earned " + coins + " coins!");
 		}
 		loadMinecadeAccount();
 		refreshScoreboard();
@@ -1277,6 +1372,11 @@ public class TTTPlayer {
 		return Bukkit.getPlayerExact(this.playerName);
 	}
 
+	/**
+	 * Gets the rank of the player.
+	 * 
+	 * @return The rank of the player
+	 */
 	public Rank getRank() {
 		return this.rank;
 	}
@@ -1332,6 +1432,50 @@ public class TTTPlayer {
 		Player player = getPlayer();
 		if (player != null) {
 			giveLeaveItem(player);
+		}
+	}
+
+	/**
+	 * Gives the player an inventory of skulls for each player in the game that
+	 * they can teleport to.
+	 */
+	public void giveSpectatorInventory() {
+		Player p = getPlayer();
+		if (p == null) {
+			return;
+		}
+		Inventory inventory = p.getInventory();
+		inventory.clear();
+		ItemStack item;
+		SkullMeta meta;
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			TTTPlayer Tplayer = getTTTPlayer(player);
+			ChatColor color = ChatColor.WHITE;
+			switch (Tplayer.getTeam()) {
+			case DETECTIVE:
+				color = FileManager.detectiveColor;
+				break;
+			case TRAITOR:
+				color = FileManager.traitorColor;
+				break;
+			case INNOCENT:
+				color = FileManager.innocentColor;
+				break;
+			default:
+				continue;
+			}
+			item = new ItemStack(Material.SKULL_ITEM, 1);
+			meta = (SkullMeta) item.getItemMeta();
+			String name = Tplayer.playerName;
+			String display = color + name + ChatColor.RESET;
+			meta.setOwner(name);
+			meta.setDisplayName(display);
+			List<String> lore = new ArrayList<>();
+			lore.add("Click to teleport to " + display);
+			meta.setLore(lore);
+
+			item.setItemMeta(meta);
+			inventory.addItem(item);
 		}
 	}
 
@@ -1432,20 +1576,13 @@ public class TTTPlayer {
 				if (!inventory.containsAtLeast(PlayerListener.nugget, cost)) {
 					p.sendMessage(ChatColor.RED
 							+ "You cannot afford this item!");
-					// clearCursorItemLater(p);
-					ItemStack oldItem = p.getItemOnCursor();
-					p.closeInventory();
-					openTraitorShop();
-					p.setItemOnCursor(oldItem);
+					openShop();
 					return true;
 				}
 				if (shopItem.alreadyHas(inventory)) {
 					p.sendMessage(ChatColor.RED
 							+ "You can only own one of these items!");
-					ItemStack oldItem = p.getItemOnCursor();
-					p.closeInventory();
-					openTraitorShop();
-					p.setItemOnCursor(oldItem);
+					openShop();
 					return true;
 				}
 				p.sendMessage(ChatColor.GREEN + "You've purchased "
@@ -1454,17 +1591,72 @@ public class TTTPlayer {
 				SpecialItem specialItem = shopItem;
 				this.ownedItems.add(specialItem);
 				inventory.addItem(specialItem.getItemInInventory());
-				// clearCursorItemLater(p);
-				ItemStack oldItem = p.getItemOnCursor();
-				p.closeInventory();
-				openTraitorShop();
-				p.setItemOnCursor(oldItem);
+				openShop();
+				return true;
+			}
+		}
+		for (SpecialItem shopItem : this.detectiveShop) {
+			if (item.getItemMeta().getDisplayName()
+					.equals(shopItem.getDisplayName())) {
+				int cost = shopItem.getCost();
+				if (!inventory.containsAtLeast(PlayerListener.nugget, cost)) {
+					p.sendMessage(ChatColor.RED
+							+ "You cannot afford this item!");
+					openShop();
+					return true;
+				}
+				if (shopItem.alreadyHas(inventory)) {
+					p.sendMessage(ChatColor.RED
+							+ "You can only own one of these items!");
+					openShop();
+					return true;
+				}
+				p.sendMessage(ChatColor.GREEN + "You've purchased "
+						+ ChatColor.RESET + shopItem.getDisplayName() + "!");
+				spendNuggets(cost);
+				SpecialItem specialItem = shopItem;
+				this.ownedItems.add(specialItem);
+				inventory.addItem(specialItem.getItemInInventory());
+				openShop();
 				return true;
 			}
 		}
 		return false;
 	}
 
+	/**
+	 * Teleports the spectator to the player specified by the item.
+	 * 
+	 * @param item
+	 *            The item specifying the player
+	 */
+	private void handleSpecatatorTeleport(ItemStack item) {
+		Player p = getPlayer();
+		if (p == null) {
+			return;
+		}
+		if (item == null) {
+			return;
+		}
+		ItemMeta meta = item.getItemMeta();
+		if (meta == null) {
+			return;
+		}
+		String name = meta.getDisplayName();
+		name = ChatColor.stripColor(name);
+		Player player = Bukkit.getPlayerExact(name);
+		if (player == null) {
+			return;
+		}
+		p.teleport(player);
+		p.closeInventory();
+	}
+
+	/**
+	 * Checks if the player has already voted.
+	 * 
+	 * @return True if the player has no more votes left
+	 */
 	private boolean hasVoted() {
 		if (this.rank.getTier() >= 1) {
 			return this.timesVoted >= 2;
@@ -1516,6 +1708,18 @@ public class TTTPlayer {
 
 		}
 	}
+
+	// private void installVoteTools(List<ItemStack> items) {
+	// Player p = getPlayer();
+	// if (p == null)
+	// return;
+	// Inventory inventory = p.getInventory();
+	// inventory.clear();
+	// for (int i = 0; i < items.size(); i++) {
+	// inventory.setItem(i, items.get(i));
+	// }
+	// p.updateInventory();
+	// }
 
 	/**
 	 * Gives the player all the tools they need to vote or spectate.
@@ -1615,18 +1819,6 @@ public class TTTPlayer {
 		return this.spectating;
 	}
 
-	// private void installVoteTools(List<ItemStack> items) {
-	// Player p = getPlayer();
-	// if (p == null)
-	// return;
-	// Inventory inventory = p.getInventory();
-	// inventory.clear();
-	// for (int i = 0; i < items.size(); i++) {
-	// inventory.setItem(i, items.get(i));
-	// }
-	// p.updateInventory();
-	// }
-
 	/**
 	 * Loads the MinecadeAccount for this player.
 	 */
@@ -1638,6 +1830,12 @@ public class TTTPlayer {
 		}
 	}
 
+	/**
+	 * Logs a kill, used in stat tracking.
+	 * 
+	 * @param cause
+	 *            The player's team that was killed
+	 */
 	public void logKill(PlayerTeam cause) {
 		plugin.fileManager.logKill(this, cause);
 		if (getTeam() == PlayerTeam.INNOCENT && cause == PlayerTeam.TRAITOR) {
@@ -1647,8 +1845,12 @@ public class TTTPlayer {
 		}
 	}
 
-	private void logPlayedGame() {
-		this.plugin.fileManager.logPlayedGame(this);
+	/**
+	 * Logs a played game, used in stat tracking
+	 */
+	public void logPlayedGame() {
+		this.gamesPlayed++;
+		plugin.fileManager.logPlayedGame(this);
 
 	}
 
@@ -1671,6 +1873,36 @@ public class TTTPlayer {
 	}
 
 	/**
+	 * Opens the detective shop for the player
+	 */
+	private void openDetectiveShop() {
+		Player p = getPlayer();
+		if (p == null) {
+			return;
+		}
+
+		this.detectiveShop.clear();
+		Inventory inventory = p.getInventory();
+
+		ArrayList<ItemStack> detectiveItems = new ArrayList<>();
+
+		DamageCause[] causes = { DamageCause.CONTACT };
+		SpecialItem theBackstaber = new SpecialItem(Material.DIAMOND_SWORD,
+				"The Teststabber", 1, Power.ONE_HIT_KILL_FROM_BEHIND, causes,
+				1, 0, "Instantly kills someone if used from behind.",
+				"Destroyed after 1 use.");
+		detectiveItems.add(theBackstaber.getItemInShop(inventory));
+		this.detectiveShop.add(theBackstaber);
+
+		Inventory shopInventory = Bukkit.getServer().createInventory(null,
+				getMultipleOfNine(detectiveItems.size()), "Detective shop");
+		shopInventory.addItem(detectiveItems
+				.toArray(new ItemStack[detectiveItems.size()]));
+
+		p.openInventory(shopInventory);
+	}
+
+	/**
 	 * Opens the shop for the player.
 	 */
 	public void openShop() {
@@ -1684,6 +1916,7 @@ public class TTTPlayer {
 			openTraitorShop();
 			break;
 		case DETECTIVE:
+			// openDetectiveShop();
 			break;
 		case INNOCENT:
 			break;
@@ -1879,8 +2112,6 @@ public class TTTPlayer {
 		this.chooseDetective = false;
 		this.chooseInnocent = false;
 		this.chooseTraitor = false;
-		this.gamesPlayed++;
-		logPlayedGame();
 		resetScoreboard();
 	}
 
@@ -1896,6 +2127,9 @@ public class TTTPlayer {
 		this.scoreboard = newboard;
 	}
 
+	/**
+	 * Saves this player
+	 */
 	private void save() {
 		plugin.fileManager.save(this);
 	}
@@ -2089,7 +2323,7 @@ public class TTTPlayer {
 		HashMap<OfflinePlayer, Integer> numberOfVotes = new HashMap<>();
 		for (String key : votes.keySet()) {
 			VoteInfo info = votes.get(key);
-			if (info.voteCount > 0) {
+			if (info.voteCount >= 0) {
 				numberOfVotes.put(info.display, info.voteCount);
 			}
 		}
@@ -2106,6 +2340,11 @@ public class TTTPlayer {
 	private void showPrepScoreboard(
 			HashMap<OfflinePlayer, Integer> numberOfVotes) {
 		hookScoreboard();
+		Player player = getPlayer();
+		if (player != null) {
+			this.scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+			player.setScoreboard(this.scoreboard);
+		}
 		Objective objective = this.scoreboard.getObjective("votes");
 		if (objective == null) {
 			objective = this.scoreboard.registerNewObjective("votes", "dummy");
@@ -2119,10 +2358,38 @@ public class TTTPlayer {
 			objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 		}
 
-		for (OfflinePlayer key : numberOfVotes.keySet()) {
-			Score score = objective.getScore(key);
-			score.setScore(numberOfVotes.get(key));
+		List<OfflinePlayer> voteKeys = new ArrayList<>(numberOfVotes.keySet());
+		for (int j = voteKeys.size(); j > 0; j--) {
+			OfflinePlayer key = voteKeys.get(j - 1);
+			int i = j * 3;
+			String color = "";
+			String string = color + key.getName();
+			string = string.substring(0, 2) + ChatColor.BOLD
+					+ string.substring(2);
+			if (string.length() > 16) {
+				string = string.substring(0, 16);
+			}
+			OfflinePlayer line = Bukkit.getOfflinePlayer(string);
+			Score score = objective.getScore(line);
+			score.setScore(i);
+
+			i = i - 1;
+			color = ChatColor.values()[i].toString();
+			line = Bukkit.getOfflinePlayer(color + " " + ChatColor.GRAY
+					+ "Votes " + numberOfVotes.get(key));
+			score = objective.getScore(line);
+			score.setScore(i);
+
+			i = i - 1;
+			color = ChatColor.values()[i].toString();
+			line = Bukkit.getOfflinePlayer(color + "  ");
+			score = objective.getScore(line);
+			score.setScore(i);
 		}
+		// for (OfflinePlayer key : numberOfVotes.keySet()) {
+		// Score score = objective.getScore(key);
+		// score.setScore(numberOfVotes.get(key));
+		// }
 	}
 
 	/**

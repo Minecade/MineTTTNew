@@ -62,6 +62,7 @@ public class MineTTT extends JavaPlugin {
 	 */
 	@Override
 	public void onDisable() {
+		this.thread.destroyHologram();
 		if (this.thread.getGameStatus() != GameState.OFF) {
 			this.thread.endGame(true);
 			Bukkit.broadcastMessage(ChatColor.RED
@@ -79,7 +80,6 @@ public class MineTTT extends JavaPlugin {
 			}
 		}
 
-		this.thread.destroyHologram();
 		this.playerListener.resetDeadPlayers();
 	}
 

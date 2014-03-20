@@ -448,12 +448,26 @@ public class FileManager {
 		}
 	}
 
+	/**
+	 * Logs a kill to the database.
+	 * 
+	 * @param Tplayer
+	 *            The player who did the killing
+	 * @param kill
+	 *            The team of the player who was killed
+	 */
 	public void logKill(TTTPlayer Tplayer, PlayerTeam kill) {
 		if (UsePlayerSQL) {
 			this.database.logKill(Tplayer, kill);
 		}
 	}
 
+	/**
+	 * Logs a played game to the database.
+	 * 
+	 * @param Tplayer
+	 *            The player who played
+	 */
 	public void logPlayedGame(TTTPlayer Tplayer) {
 		if (UsePlayerSQL) {
 			this.database.logPlayedGame(Tplayer);
@@ -473,6 +487,11 @@ public class FileManager {
 		}
 	}
 
+	/**
+	 * Saves the player to the database.
+	 * 
+	 * @param tttPlayer
+	 */
 	public void save(TTTPlayer tttPlayer) {
 		if (UsePlayerSQL) {
 			this.database.updatePlayer(tttPlayer);

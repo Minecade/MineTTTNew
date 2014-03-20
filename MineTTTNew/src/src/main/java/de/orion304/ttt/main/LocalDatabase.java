@@ -74,7 +74,7 @@ public class LocalDatabase {
 						.getInt("traitorKillsAsDetective");
 				int detectiveKills = set.getInt("detectiveKills");
 				int innocentKills = set.getInt("innocentKills");
-				int gamesPlayed = set.getInt("playedGames");
+				int gamesPlayed = set.getInt("gamesPlayed");
 				new TTTPlayer(username, karma, banDate, banDuration, rank,
 						traitorKillsAsDetective, detectiveKills, innocentKills,
 						traitorKillsAsInnocent, gamesPlayed);

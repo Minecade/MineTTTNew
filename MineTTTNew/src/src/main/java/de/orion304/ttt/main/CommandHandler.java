@@ -91,6 +91,17 @@ public class CommandHandler {
 	 *            The arguments of the command.
 	 */
 	private void getStatus(Player player, String[] args) {
+		if (player != null) {
+			// Location loc = player.getLocation();
+			// Hologram hologram = new Hologram(this.plugin,
+			// "AABCDEFGHIJKLM0NOPQRSTUVWXYZZ",
+			// "                     0                     ");
+			// hologram.show(loc.clone().add(0, 1.5, 0), 300L, null);
+			// Hologram l1 = new Hologram(this.plugin, "LINE 1");
+			// l1.show(loc.clone().add(1, -1.5 + .23, 0), 300L, null);
+			// Hologram l2 = new Hologram(this.plugin, "LINE 2");
+			// l2.show(loc.clone().add(1, -1.5, 0), 300L, null);
+		}
 		sendMessage(player, "The status of MineTTT is: "
 				+ this.plugin.thread.getGameStatus().toString());
 	}

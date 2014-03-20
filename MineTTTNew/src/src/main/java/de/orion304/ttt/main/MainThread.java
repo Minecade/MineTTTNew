@@ -24,6 +24,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Scoreboard;
 
@@ -33,9 +34,12 @@ import src.main.java.de.orion304.ttt.players.DetectiveCompass;
 import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
 import src.main.java.org.orion304.utils.Hologram;
+import src.main.java.org.orion304.utils.Justification;
 import src.main.java.org.orion304.utils.MathUtils;
 
 public class MainThread implements Runnable {
+
+	public static final String currencyName = "Coin";
 
 	private static long preptime = FileManager.preparationTime + 500L;
 
@@ -58,7 +62,8 @@ public class MainThread implements Runnable {
 	private long fireworkTick = 0;
 	private boolean traitorsWon = false;
 
-	private final Hologram hologram, vipHologram;
+	private final boolean useHolograms = true;
+	private final Hologram hologram, vipHologram, siteHologram, nuggetHologram;
 
 	/**
 	 * Creates a new MainThread for MineTTT, which handles anything to do with
@@ -104,10 +109,21 @@ public class MainThread implements Runnable {
 						+ detective + "s!", reset + "Or be an " + innocent
 						+ reset + " to find, hide from, and eliminate "
 						+ traitor + "s!");
-		this.vipHologram = new Hologram(instance,
+		this.vipHologram = new Hologram(instance, Justification.LEFT,
 				ChatColor.AQUA + "VIP PERKS:", "\u2022Two map votes",
-				"\u2022Double the tokens", "\u2022Join full servers",
+				"\u2022Double the coins", "\u2022Join full servers",
 				"\u2022Choose your role", "\u2022Choose to spectate");
+		this.siteHologram = new Hologram(instance, Justification.LEFT,
+				"minecade.com", "twitter.com/Minecade",
+				"fb.me/LegendaryNetwork");
+		this.nuggetHologram = new Hologram(instance, Justification.LEFT,
+				ChatColor.GOLD + "Golden Nugget Info:",
+				"Earn gold nuggets in game by killing",
+				"  appropriate players.",
+				"Click on a gold nugget as a traitor",
+				"  to open the shop and buy", "  unique, powerful items.",
+				"Nuggets not used at the end of the",
+				"  game are turned into coins.");
 		showHologram();
 	}
 
@@ -142,8 +158,12 @@ public class MainThread implements Runnable {
 	 * Destroys the holograms.
 	 */
 	public void destroyHologram() {
-		// this.hologram.destroy();
-		// this.vipHologram.destroy();
+		if (this.useHolograms) {
+			this.hologram.destroy();
+			this.vipHologram.destroy();
+			this.siteHologram.destroy();
+			this.nuggetHologram.destroy();
+		}
 	}
 
 	/**
@@ -200,6 +220,11 @@ public class MainThread implements Runnable {
 		new DetectiveCompass(detective, killer);
 	}
 
+	/**
+	 * Fires a random firework at the location.
+	 * 
+	 * @param location
+	 */
 	private void fireFirework(Location location) {
 		Firework fw = (Firework) location.getWorld().spawnEntity(location,
 				EntityType.FIREWORK);
@@ -301,6 +326,13 @@ public class MainThread implements Runnable {
 		return lore;
 	}
 
+	/**
+	 * Returns a color based on the integer parameter
+	 * 
+	 * @param i
+	 *            The integer
+	 * @return The chat color
+	 */
 	private Color getColor(int i) {
 		Color c = null;
 		if (i == 1) {
@@ -394,6 +426,9 @@ public class MainThread implements Runnable {
 		return this.lobbyLocation;
 	}
 
+	/**
+	 * Handles the celebrations/fireworks display
+	 */
 	private void handleCelebrations() {
 		long delta = System.currentTimeMillis() - this.celebrationStartTime;
 
@@ -422,16 +457,16 @@ public class MainThread implements Runnable {
 
 			}
 
-			reloadHologram();
+			showHologram();
 			this.celebrationStartTime = 0;
 
 			if (!forced) {
-				// new BukkitRunnable() {
-				// @Override
-				// public void run() {
-				// Bukkit.getServer().shutdown();
-				// }
-				// }.runTaskLater(this.plugin, 10 * 20);
+				new BukkitRunnable() {
+					@Override
+					public void run() {
+						Bukkit.getServer().shutdown();
+					}
+				}.runTaskLater(this.plugin, 10 * 20);
 			}
 
 		}
@@ -503,7 +538,11 @@ public class MainThread implements Runnable {
 		board.clearSlot(DisplaySlot.SIDEBAR);
 	}
 
+	/**
+	 * Loads 4 random arenas into memory for voting purposes.
+	 */
 	public void load4Arenas() {
+		TTTPlayer.resetVoteKeys();
 		Set<String> set = getArenaLocations().keySet();
 		List<String> list = new ArrayList<>(set);
 		this.loadedArenaKeys.clear();
@@ -511,6 +550,7 @@ public class MainThread implements Runnable {
 			String arena = MathUtils.randomChoiceFromCollection(list);
 			list.remove(arena);
 			this.loadedArenaKeys.add(arena);
+			TTTPlayer.installVoteKey(arena);
 		}
 	}
 
@@ -528,6 +568,9 @@ public class MainThread implements Runnable {
 		}
 	}
 
+	/**
+	 * Reloads the holograms.
+	 */
 	public void reloadHologram() {
 		destroyHologram();
 		showHologram();
@@ -604,13 +647,23 @@ public class MainThread implements Runnable {
 	 * Displays the holograms.
 	 */
 	public void showHologram() {
-		Location location = this.lobbyLocation.clone();
-		location.add(-1, 1.5, 7);
-		// this.hologram.show(location);
+		if (this.useHolograms) {
+			Location location = this.lobbyLocation.clone();
+			location.add(-1, 1.5, 7);
+			this.hologram.show(location);
 
-		Location vipLocation = this.lobbyLocation.clone();
-		vipLocation.add(-10, 1.5, 15);
-		// this.vipHologram.show(vipLocation);
+			Location vipLocation = this.lobbyLocation.clone();
+			vipLocation.add(-10, 1.5, 15);
+			this.vipHologram.show(vipLocation);
+
+			Location siteLocation = this.lobbyLocation.clone();
+			siteLocation.add(-10, 1.5, -9);
+			this.siteHologram.show(siteLocation);
+
+			Location nuggetLocation = this.lobbyLocation.clone();
+			nuggetLocation.add(10, 1.5, -7);
+			this.nuggetHologram.show(nuggetLocation);
+		}
 	}
 
 	/**
@@ -622,6 +675,7 @@ public class MainThread implements Runnable {
 		this.state = GameState.GAME_RUNNING;
 		TTTPlayer.reset();
 		makeAllVisible();
+		destroyHologram();
 
 		if (!this.plugin.teamHandler.initializeTeams()) {
 			endGame(true);
@@ -740,7 +794,10 @@ public class MainThread implements Runnable {
 		}
 		player.teleport(loc);
 
-		reloadHologram();
+		// if (this.state == GameState.OFF
+		// || this.state == GameState.GAME_PREPARING) {
+		// reloadHologram();
+		// }
 
 	}
 

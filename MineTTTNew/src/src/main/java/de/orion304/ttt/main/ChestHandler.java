@@ -156,7 +156,7 @@ public class ChestHandler {
 	 * @param chest
 	 */
 	public void handleChest(Chest chest) {
-		if (this.chests.contains(chest)) {
+		if (this.chests.containsKey(chest)) {
 			return;
 		} else {
 			this.chests.put(chest, System.currentTimeMillis());
