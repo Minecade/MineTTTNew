@@ -232,7 +232,7 @@ public class PlayerListener implements Listener {
 		Entity damageTaker = event.getEntity();
 
 		if (damageDealer instanceof Projectile) {
-			damageDealer = ((Projectile) damageDealer).getShooter();
+			damageDealer = (Entity) ((Projectile) damageDealer).getShooter();
 		}
 
 		if (damageDealer instanceof Player && damageTaker instanceof Player) {
