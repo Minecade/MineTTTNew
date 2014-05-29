@@ -1,0 +1,69 @@
+name: MineTTT
+main: src.main.java.de.orion304.ttt.main.MineTTT
+version: 0.0.1
+commands:
+    setarenalocation:
+        description: Sets the location of the arena.
+        usage: setarenalocation [world] [x] [y] [z]
+    setlobbylocation:
+        description: Sets the location of the lobby.
+        usage: setlobbylocation [world] [x] [y] [z]
+    goto:
+        description: Teleports the player(s) to the specified arena.
+        usage: goto <arenaname> [player1] [player2] [player3] ...
+    gotolobby:
+        description: Teleports the player(s) to the lobby.
+        usage: gotolobby [player1] [player2] [player3] ...
+    forcestart:
+        description: Forces the game to begin, regardless of the number of players.
+        usage: forcestart
+    forceend:
+        description: Forces the game to end.
+        usage: forceend
+    getstatus:
+        description: Gets the status of the minigame.
+        usage: getstatus
+    spectate:
+        description: Choose to spectate instead of play the game.
+        usage: spectate
+    update:
+        description: Asks the server to update your Minecade information (number of tokens, VIP status, etc)
+        usage: update
+    shop:
+        description: Test command
+        usage: shop
+    load:
+        description: Loads the config files
+        usage: load
+    setrank:
+        description: Sets the player's rank.
+        usage: setadmin <player> <rank>    
+    addcoins:
+        description: Adds coins to the player's minecade account.
+        usage: addcoins <player> <numberOfCoins>
+        
+permissions:
+    minettt.setarenalocation:
+        default: op
+    minettt.setlobbylocation:
+        default: op
+    minettt.goto:
+        default: op
+    minettt.gotolobby:
+        default: op
+    minettt.forcestart:
+        default: op
+    minettt.forceend:
+        default: op
+    minettt.getstatus:
+        default: true
+    minettt.spectate:
+        default: op
+    minettt.update:
+        default: true
+    minettt.load:
+        default: op
+    minettt.setrank:
+        default: op
+    minettt.addcoins:
+        default: op    
