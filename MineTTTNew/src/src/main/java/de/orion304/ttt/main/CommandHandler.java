@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -48,7 +49,8 @@ public class CommandHandler {
 			sendMessage(player, "That wasn't a number...");
 			return;
 		}
-		if (this.plugin.minecade.addCoins(args[0], i)) {
+		OfflinePlayer oPlayer = Bukkit.getOfflinePlayer(args[0]);
+		if (this.plugin.minecade.addCoins(oPlayer.getUniqueId(), i)) {
 			sendMessage(player, i + " coins have been added to " + args[0]
 					+ "'s account.");
 		} else {

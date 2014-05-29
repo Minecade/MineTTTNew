@@ -1,10 +1,11 @@
 package src.main.java.de.orion304.ttt.minecade;
 
 import java.sql.Timestamp;
+import java.util.UUID;
 
 public class MinecadeAccount {
 
-	private String username;
+	private UUID uuid;
 
 	private boolean admin;
 
@@ -16,6 +17,12 @@ public class MinecadeAccount {
 
 	private boolean youtuber;
 
+	private boolean titan;
+
+	private boolean owner;
+
+	private boolean dev;
+
 	private long butterCoins;
 
 	private String pet;
@@ -25,25 +32,85 @@ public class MinecadeAccount {
 	private int vipPassDialyAttemps;
 
 	/**
-	 * @return the username
+	 * @return the butterCoins
 	 */
-	public String getUsername() {
-		return username;
+	public long getButterCoins() {
+		return this.butterCoins;
 	}
 
 	/**
-	 * @param username
-	 *            the username to set
+	 * @return the pet
 	 */
-	public void setUsername(String username) {
-		this.username = username;
+	public String getPet() {
+		return this.pet;
+	}
+
+	/**
+	 * @return the username
+	 */
+	public UUID getUUID() {
+		return this.uuid;
+	}
+
+	/**
+	 * @return the vipPassDialyAttemps
+	 */
+	public int getVipPassDailyAttemps() {
+		return this.vipPassDialyAttemps;
+	}
+
+	/**
+	 * @return the vipPassDate
+	 */
+	public Timestamp getVipPassDate() {
+		return this.vipPassDate;
 	}
 
 	/**
 	 * @return the admin
 	 */
 	public boolean isAdmin() {
-		return admin;
+		return this.admin;
+	}
+
+	/**
+	 * @return the cm
+	 */
+	public boolean isCm() {
+		return this.cm;
+	}
+
+	public boolean isDev() {
+		return this.dev;
+	}
+
+	/**
+	 * @return the gm
+	 */
+	public boolean isGm() {
+		return this.gm;
+	}
+
+	public boolean isOwner() {
+		return this.owner;
+	}
+
+	public boolean isTitan() {
+		return this.titan;
+	}
+
+	/**
+	 * @return the vip, if a user is a youtuber, automatically is vip.
+	 */
+	public boolean isVip() {
+		return this.youtuber || this.vip;
+	}
+
+	/**
+	 * @return the youtuber
+	 */
+	public boolean isYoutuber() {
+		return this.youtuber;
 	}
 
 	/**
@@ -55,25 +122,11 @@ public class MinecadeAccount {
 	}
 
 	/**
-	 * @return the gm
+	 * @param butterCoins
+	 *            the butterCoins to set
 	 */
-	public boolean isGm() {
-		return gm;
-	}
-
-	/**
-	 * @param gm
-	 *            the gm to set
-	 */
-	public void setGm(boolean gm) {
-		this.gm = gm;
-	}
-
-	/**
-	 * @return the cm
-	 */
-	public boolean isCm() {
-		return cm;
+	public void setButterCoins(long butterCoins) {
+		this.butterCoins = butterCoins;
 	}
 
 	/**
@@ -84,11 +137,50 @@ public class MinecadeAccount {
 		this.cm = cm;
 	}
 
+	public void setDev(boolean dev) {
+		this.dev = dev;
+	}
+
 	/**
-	 * @return the vip, if a user is a youtuber, automatically is vip.
+	 * @param gm
+	 *            the gm to set
 	 */
-	public boolean isVip() {
-		return youtuber || vip;
+	public void setGm(boolean gm) {
+		this.gm = gm;
+	}
+
+	public void setOwner(boolean owner) {
+		this.owner = owner;
+	}
+
+	/**
+	 * @param pet
+	 *            the pet to set
+	 */
+	public void setPet(String pet) {
+		this.pet = pet;
+	}
+
+	public void setTitan(boolean titan) {
+		this.titan = titan;
+	}
+
+	/**
+	 * @param username
+	 *            the username to set
+	 */
+	public void setUUID(String uuid) {
+		setUUID(UUID.fromString(uuid));
+	}
+
+	/**
+	 * 
+	 * @param uuid
+	 *            the uuid to set
+	 * 
+	 */
+	public void setUUID(UUID uuid) {
+		this.uuid = uuid;
 	}
 
 	/**
@@ -100,55 +192,11 @@ public class MinecadeAccount {
 	}
 
 	/**
-	 * @return the butterCoins
+	 * @param vipPassDialyAttemps
+	 *            the vipPassDialyAttemps to set
 	 */
-	public long getButterCoins() {
-		return butterCoins;
-	}
-
-	/**
-	 * @param butterCoins
-	 *            the butterCoins to set
-	 */
-	public void setButterCoins(long butterCoins) {
-		this.butterCoins = butterCoins;
-	}
-
-	/**
-	 * @return the youtuber
-	 */
-	public boolean isYoutuber() {
-		return youtuber;
-	}
-
-	/**
-	 * @param youtuber
-	 *            the youtuber to set
-	 */
-	public void setYoutuber(boolean youtuber) {
-		this.youtuber = youtuber;
-	}
-
-	/**
-	 * @return the pet
-	 */
-	public String getPet() {
-		return pet;
-	}
-
-	/**
-	 * @param pet
-	 *            the pet to set
-	 */
-	public void setPet(String pet) {
-		this.pet = pet;
-	}
-
-	/**
-	 * @return the vipPassDate
-	 */
-	public Timestamp getVipPassDate() {
-		return vipPassDate;
+	public void setVipPassDailyAttemps(int vipPassDialyAttemps) {
+		this.vipPassDialyAttemps = vipPassDialyAttemps;
 	}
 
 	/**
@@ -160,17 +208,21 @@ public class MinecadeAccount {
 	}
 
 	/**
-	 * @return the vipPassDialyAttemps
+	 * @param youtuber
+	 *            the youtuber to set
 	 */
-	public int getVipPassDailyAttemps() {
-		return vipPassDialyAttemps;
+	public void setYoutuber(boolean youtuber) {
+		this.youtuber = youtuber;
 	}
 
-	/**
-	 * @param vipPassDialyAttemps
-	 *            the vipPassDialyAttemps to set
-	 */
-	public void setVipPassDailyAttemps(int vipPassDialyAttemps) {
-		this.vipPassDialyAttemps = vipPassDialyAttemps;
+	@Override
+	public String toString() {
+		return "MinecadeAccount [uuid=" + this.uuid + ", admin=" + this.admin
+				+ ", gm=" + this.gm + ", cm=" + this.cm + ", vip=" + this.vip
+				+ ", youtuber=" + this.youtuber + ", titan=" + this.titan
+				+ ", owner=" + this.owner + ", dev=" + this.dev
+				+ ", butterCoins=" + this.butterCoins + ", pet=" + this.pet
+				+ ", vipPassDate=" + this.vipPassDate
+				+ ", vipPassDialyAttemps=" + this.vipPassDialyAttemps + "]";
 	}
 }

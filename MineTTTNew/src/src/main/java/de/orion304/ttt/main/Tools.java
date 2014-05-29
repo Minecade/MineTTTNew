@@ -136,7 +136,7 @@ public class Tools {
 		boolean air = false;
 		for (int i = -maxdistance; i < maxdistance; i++) {
 			Block block = startblock.getRelative(BlockFace.UP, i);
-			if (isTransparent(block)) {
+			if (isTransparent(block) && !block.isLiquid()) {
 				if (solidblock != null) {
 					if (air) {
 						return block.getRelative(BlockFace.DOWN);

@@ -17,6 +17,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import src.main.java.de.orion304.ttt.main.MineTTT;
+import src.main.java.org.orion304.enderbar.FakeDragon;
+import src.main.java.org.orion304.enderbar.Util;
 
 public class BarAPI extends JavaPlugin implements Listener {
 	private static HashMap<String, FakeDragon> players = new HashMap<String, FakeDragon>();

@@ -31,6 +31,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
@@ -90,7 +91,7 @@ public class TTTPlayer {
 			.getOfflinePlayer(ChatColor.GOLD + "Coins");
 
 	public static final String trustLabel = "Proclaim your trust",
-			suspectLabel = "Express your suspiscion",
+			suspectLabel = "Express your suspicion",
 			claimLabel = "Call out a traitor";
 
 	private static final String voteForAMap = "Vote for a map...";
@@ -359,7 +360,7 @@ public class TTTPlayer {
 		if (players.containsKey(playerName)) {
 			return players.get(playerName);
 		}
-		return new TTTPlayer(playerName);
+		return plugin.fileManager.database.loadPlayer(playerName);
 	}
 
 	/**
@@ -392,7 +393,7 @@ public class TTTPlayer {
 	 * 
 	 * @return The winning arena location.
 	 */
-	public static Location getWinningLocation() {
+	public static String getWinningLocation() {
 		ConcurrentHashMap<String, Location> locations = plugin.thread
 				.getArenaLocations();
 		Random random = new Random();
@@ -403,9 +404,9 @@ public class TTTPlayer {
 			int size = locations.size();
 			int choice = random.nextInt(size);
 			String[] choices = locations.keySet().toArray(new String[size]);
-			return locations.get(choices[choice]);
+			return choices[choice];
 		}
-		ArrayList<Location> choices = new ArrayList<>();
+		ArrayList<String> choices = new ArrayList<>();
 		for (String key : votes.keySet()) {
 			VoteInfo info = votes.get(key);
 			Location location = locations.get(key);
@@ -414,12 +415,12 @@ public class TTTPlayer {
 			}
 			int i = 1;
 			while (i <= info.voteCount) {
-				choices.add(location);
+				choices.add(key);
 				i++;
 			}
 		}
 		if (choices.isEmpty()) {
-			choices.addAll(locations.values());
+			choices.addAll(locations.keySet());
 		}
 		int choice = random.nextInt(choices.size());
 		return choices.get(choice);
@@ -534,6 +535,17 @@ public class TTTPlayer {
 		ItemStack item = player.getItemInHand();
 		GameState state = plugin.thread.getGameStatus();
 		TTTPlayer Tplayer = getTTTPlayer(player);
+
+		if (item != null) {
+			if (item.getItemMeta() != null) {
+				String key = item.getItemMeta().getDisplayName();
+				if (leaveLabel.equals(key)) {
+					Bungee.disconnect(player);
+					return true;
+				}
+			}
+		}
+
 		switch (state) {
 		case OFF:
 			return Tplayer.vote(item);
@@ -654,10 +666,19 @@ public class TTTPlayer {
 	 * @param player
 	 *            That player that joined.
 	 */
-	public static void handleJoin(Player player) {
+	public static void handleJoin(final Player player) {
 		if (player == null) {
 			return;
 		}
+		new BukkitRunnable() {
+
+			@Override
+			public void run() {
+				plugin.thread.showHologram(player);
+
+			}
+
+		}.runTaskLater(plugin, 2L);
 
 		player.getInventory().clear();
 		player.teleport(plugin.thread.getLobbyLocation());
@@ -693,6 +714,7 @@ public class TTTPlayer {
 			allRegisterPlayer(player);
 			Tplayer.showGameScoreboard();
 			Claymore.showClaymores(Tplayer);
+			giveLeaveItem(player);
 			break;
 		}
 	}
@@ -717,6 +739,8 @@ public class TTTPlayer {
 				showAllGameScoreboards();
 			}
 		}
+		plugin.fileManager.database.updatePlayer(Tplayer);
+		players.remove(Tplayer.playerName);
 	}
 
 	/**
@@ -739,7 +763,6 @@ public class TTTPlayer {
 	public static void installVoteKey(String string) {
 		VoteInfo info = new VoteInfo(Bukkit.getOfflinePlayer(string));
 		votes.put(string, info);
-		Tools.verbose(string);
 	}
 
 	/**
@@ -1083,6 +1106,9 @@ public class TTTPlayer {
 		this.calls.put(target.getName(), time);
 
 		TTTPlayer Ttarget = getTTTPlayer(target);
+		if (Ttarget.getTeam() == PlayerTeam.NONE) {
+			return;
+		}
 
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
@@ -1231,7 +1257,7 @@ public class TTTPlayer {
 		if (canGetDoubleCoins()) {
 			coins *= 2;
 		}
-		plugin.minecade.addCoins(this.playerName, coins);
+		plugin.minecade.addCoins(player.getUniqueId(), coins);
 		if (coins != 0) {
 			player.sendMessage(ChatColor.GOLD.toString() + ChatColor.ITALIC
 					+ "You earned " + coins + " coins!");
@@ -1448,6 +1474,7 @@ public class TTTPlayer {
 		inventory.clear();
 		ItemStack item;
 		SkullMeta meta;
+		int i = 9;
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			TTTPlayer Tplayer = getTTTPlayer(player);
 			ChatColor color = ChatColor.WHITE;
@@ -1475,8 +1502,10 @@ public class TTTPlayer {
 			meta.setLore(lore);
 
 			item.setItemMeta(meta);
-			inventory.addItem(item);
+			inventory.setItem(i, item);
+			i++;
 		}
+		giveLeaveItem(p);
 	}
 
 	/**
@@ -1567,6 +1596,9 @@ public class TTTPlayer {
 			return false;
 		}
 		if (item.getItemMeta() == null) {
+			return false;
+		}
+		if (item.getItemMeta().getDisplayName() == null) {
 			return false;
 		}
 		for (SpecialItem shopItem : this.traitorShop) {
@@ -1823,10 +1855,11 @@ public class TTTPlayer {
 	 * Loads the MinecadeAccount for this player.
 	 */
 	public void loadMinecadeAccount() {
-		this.account = plugin.minecade.getMinecadeAccount(this.playerName);
 		Player p = getPlayer();
 		if (p != null) {
-			p.setOp(this.rank.getTier() >= 3);
+			this.account = plugin.minecade.getMinecadeAccount(p.getUniqueId(),
+					p.getName());
+			p.setOp(this.rank.getTier() >= 4);
 		}
 	}
 
@@ -1858,7 +1891,11 @@ public class TTTPlayer {
 	 * Makes the player lose an amount of karma between 120 and 180.
 	 */
 	public void loseKarma() {
-		addKarma(-(int) (random.nextDouble() * 60 + 120));
+		int k = (int) (random.nextDouble() * 60 + 220);
+		addKarma(-k);
+		sendMessage("You lost "
+				+ k
+				+ " karma for killing someone you shouldn't! Don't get below 200!");
 	}
 
 	/**

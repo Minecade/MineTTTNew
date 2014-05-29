@@ -61,6 +61,33 @@ public class Teams {
 		Set<Player> desiredTraitors = TTTPlayer.getDesiredTraitors();
 		Set<Player> desiredInnocents = TTTPlayer.getDesiredInnocents();
 
+		String string = "";
+		for (Player player : desiredDetectives) {
+			string += player.getName() + ", ";
+		}
+		if (string.length() > 1) {
+			string = string.substring(0, string.length() - 2);
+		}
+		Tools.verbose("Detectives: " + string);
+
+		string = "";
+		for (Player player : desiredTraitors) {
+			string += player.getName() + ", ";
+		}
+		if (string.length() > 1) {
+			string = string.substring(0, string.length() - 2);
+		}
+		Tools.verbose("Traitors: " + string);
+
+		string = "";
+		for (Player player : desiredInnocents) {
+			string += player.getName() + ", ";
+		}
+		if (string.length() > 1) {
+			string = string.substring(0, string.length() - 2);
+		}
+		Tools.verbose("Innocents: " + string);
+
 		int numberOfPlayers = players.size();
 
 		if (numberOfPlayers < 2) {

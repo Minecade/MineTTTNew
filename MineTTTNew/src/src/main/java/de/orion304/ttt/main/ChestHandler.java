@@ -37,6 +37,9 @@ public class ChestHandler {
 	 *            The chest to despawn.
 	 */
 	private void despawnChest(Chest chest) {
+		if (chest == null) {
+			return;
+		}
 		chest.getInventory().clear();
 		chest.getBlock().setType(Material.AIR);
 		chest.setType(Material.CHEST);
@@ -156,6 +159,9 @@ public class ChestHandler {
 	 * @param chest
 	 */
 	public void handleChest(Chest chest) {
+		if (chest == null) {
+			return;
+		}
 		if (this.chests.containsKey(chest)) {
 			return;
 		} else {
@@ -171,6 +177,13 @@ public class ChestHandler {
 	public void handleChests() {
 		long time = System.currentTimeMillis();
 		for (Chest chest : this.chests.keySet()) {
+			if (chest == null) {
+				continue;
+			}
+			if (this.chests.get(chest) == null) {
+				this.chests.remove(chest);
+				continue;
+			}
 			long lasttime = this.chests.get(chest);
 			if (lasttime < 0) {
 				if (time > this.respawnDuration - lasttime) {

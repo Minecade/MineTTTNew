@@ -2,10 +2,11 @@ package src.main.java.de.orion304.ttt.listeners;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-import net.minecraft.server.v1_7_R1.EntityPlayer;
-import net.minecraft.server.v1_7_R1.EnumClientCommand;
-import net.minecraft.server.v1_7_R1.PacketPlayInClientCommand;
+import net.minecraft.server.v1_7_R2.EntityPlayer;
+import net.minecraft.server.v1_7_R2.EnumClientCommand;
+import net.minecraft.server.v1_7_R2.PacketPlayInClientCommand;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -15,7 +16,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Skull;
-import org.bukkit.craftbukkit.v1_7_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_7_R2.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -40,6 +41,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerLoginEvent.Result;
 import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.InventoryHolder;
@@ -55,7 +57,7 @@ import src.main.java.de.orion304.ttt.main.Tools;
 import src.main.java.de.orion304.ttt.players.DeathLocation;
 import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
-import src.main.java.org.orion304.utils.Hologram;
+import src.main.java.org.orion304.utils.HologramOld;
 
 public class PlayerListener implements Listener {
 
@@ -63,7 +65,7 @@ public class PlayerListener implements Listener {
 			1);
 
 	private final ArrayList<Player> deadPlayers = new ArrayList<>();
-	private final List<Hologram> holograms = new ArrayList<>();
+	private final List<HologramOld> holograms = new ArrayList<>();
 
 	MineTTT plugin;
 	ChatManager chatManager;
@@ -202,6 +204,14 @@ public class PlayerListener implements Listener {
 		if (this.plugin.thread.getGameStatus() == GameState.CELEBRATIONS) {
 			event.setCancelled(true);
 		}
+		if (event.getEntity() instanceof Player && !event.isCancelled()) {
+			Player player = (Player) event.getEntity();
+			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
+			if (Tplayer.getTeam() == PlayerTeam.NONE) {
+				event.setCancelled(true);
+			}
+		}
+
 	}
 
 	/**
@@ -234,7 +244,8 @@ public class PlayerListener implements Listener {
 
 			double damage = event.getDamage();
 
-			if (Tdealer.getTeam() == PlayerTeam.NONE) {
+			if (Tdealer.getTeam() == PlayerTeam.NONE
+					|| Tplayer.getTeam() == PlayerTeam.NONE) {
 				event.setCancelled(true);
 				return;
 			}
@@ -242,8 +253,8 @@ public class PlayerListener implements Listener {
 			double newdamage = Tdealer.getDamage(player, damage,
 					event.getCause());
 
-			Hologram damageDisplay = new Hologram(this.plugin, ChatColor.RED
-					+ "-" + (int) newdamage + "HP");
+			HologramOld damageDisplay = new HologramOld(this.plugin,
+					ChatColor.RED + "-" + (int) newdamage + "HP");
 			damageDisplay.show(player.getEyeLocation().add(0, -.5, 0), 30L,
 					damager);
 
@@ -286,7 +297,7 @@ public class PlayerListener implements Listener {
 	 */
 	@EventHandler
 	public void onInventoryDrag(InventoryDragEvent event) {
-		event.getNewItems().clear();
+		// event.getNewItems().clear();
 		event.setCancelled(true);
 	}
 
@@ -334,7 +345,7 @@ public class PlayerListener implements Listener {
 			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(p);
 			if (Tplayer.getTeam() == PlayerTeam.NONE) {
 				// Tplayer.giveSpectatorInventory();
-				// event.setCancelled(true);
+				event.setCancelled(true);
 				// p.closeInventory();
 				return;
 			}
@@ -357,9 +368,17 @@ public class PlayerListener implements Listener {
 	 *            The player chat event.
 	 */
 	@EventHandler
-	public void onPlayerChat(AsyncPlayerChatEvent event) {
-		Player player = event.getPlayer();
-		this.chatManager.handleChat(player, event.getMessage());
+	public void onPlayerChat(final AsyncPlayerChatEvent event) {
+		final Player player = event.getPlayer();
+		new BukkitRunnable() {
+
+			@Override
+			public void run() {
+				PlayerListener.this.chatManager.handleChat(player,
+						event.getMessage());
+			}
+
+		}.runTaskLater(this.plugin, 1L);
 		event.setCancelled(true);
 	}
 
@@ -372,16 +391,14 @@ public class PlayerListener implements Listener {
 	 */
 	@EventHandler
 	public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
-		String command = event.getMessage();
-		if (command.contains("tell")) {
-			Player player = event.getPlayer();
-			TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
-			if (Tplayer.getTeam() == PlayerTeam.NONE
-					&& this.plugin.thread.isGameRunning()) {
-				player.sendMessage("You cannot send tells while spectating.");
-				event.setCancelled(true);
-			}
+		Player player = event.getPlayer();
+		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
+		if (Tplayer.getTeam() == PlayerTeam.NONE
+				&& this.plugin.thread.isGameRunning()) {
+			player.sendMessage("You cannot use commands while spectating.");
+			event.setCancelled(true);
 		}
+
 	}
 
 	/**
@@ -536,14 +553,10 @@ public class PlayerListener implements Listener {
 	 */
 	@EventHandler
 	public void onPlayerJoin(final PlayerJoinEvent event) {
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				Player player = event.getPlayer();
 
-				TTTPlayer.handleJoin(player);
-			}
-		}.runTaskLater(this.plugin, 2L);
+		Player player = event.getPlayer();
+
+		TTTPlayer.handleJoin(player);
 
 	}
 
@@ -557,9 +570,14 @@ public class PlayerListener implements Listener {
 	 */
 	@EventHandler
 	public void onPlayerLogin(PlayerLoginEvent event) {
+		if (this.plugin.thread.isOver()) {
+			event.disallow(Result.KICK_OTHER, "The server is restarting.");
+			return;
+		}
+		UUID id = event.getPlayer().getUniqueId();
 		String name = event.getPlayer().getName();
 		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(name);
-		if (this.plugin.minecade.isPlayerBanned(name)) {
+		if (this.plugin.minecade.isPlayerBanned(id)) {
 			event.disallow(Result.KICK_BANNED,
 					"You have been banned from all Minecade servers.");
 			return;
@@ -589,6 +607,11 @@ public class PlayerListener implements Listener {
 		}
 	}
 
+	@EventHandler(ignoreCancelled = true)
+	public void onPlayerPortal(PlayerPortalEvent event) {
+		event.setCancelled(true);
+	}
+
 	/**
 	 * Sends the event to TTTPlayer to monitor the number of players in a game,
 	 * team changes by leaving, scoreboards, etc.
@@ -611,6 +634,10 @@ public class PlayerListener implements Listener {
 	@EventHandler
 	public void onPlayerRespawn(PlayerRespawnEvent event) {
 		event.setRespawnLocation(this.plugin.thread.getLobbyLocation());
+		Player player = event.getPlayer();
+		if (this.plugin.thread.isGameRunning()) {
+			TTTPlayer.giveLeaveItem(player);
+		}
 	}
 
 	/**
@@ -621,7 +648,7 @@ public class PlayerListener implements Listener {
 			// lookAlive(player);
 		}
 		this.deadPlayers.clear();
-		for (Hologram hologram : this.holograms) {
+		for (HologramOld hologram : this.holograms) {
 			hologram.destroy();
 		}
 		this.holograms.clear();
@@ -643,7 +670,7 @@ public class PlayerListener implements Listener {
 		skull.setSkullType(SkullType.PLAYER);
 		skull.update(true, true);
 
-		Hologram hologram = new Hologram(this.plugin, "Here lies "
+		HologramOld hologram = new HologramOld(this.plugin, "Here lies "
 				+ player.getDisplayName());
 		Location location = block.getLocation().clone();
 		location.add(0, 1, 0);

@@ -11,10 +11,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.OfflinePlayer;
-
-import src.main.java.de.orion304.ttt.main.MineTTT;
+import org.bukkit.plugin.Plugin;
 
 /**
  * @author VictorV
@@ -22,10 +22,10 @@ import src.main.java.de.orion304.ttt.main.MineTTT;
  */
 public class MinecadePersistence {
 
+	private Connection con = null;
+	public int query_count = 0;
 	/** Reference to plugin's main class. */
-	public final MineTTT plugin;
-
-	protected Connection connection;
+	public final Plugin plugin;
 
 	private final String centralJdbcUrl;
 
@@ -40,7 +40,7 @@ public class MinecadePersistence {
 	 *            the plugin
 	 * @throws ClassNotFoundException
 	 */
-	public MinecadePersistence(MineTTT minecade, String host, int port,
+	public MinecadePersistence(Plugin minecade, String host, int port,
 			String database, String username, String password)
 			throws ClassNotFoundException {
 		this.plugin = minecade;
@@ -49,7 +49,6 @@ public class MinecadePersistence {
 		this.centralDbUsername = username;
 		this.centralDbpassword = password;
 		Class.forName("com.mysql.jdbc.Driver");
-		connect();
 
 		minecade.getLogger().info("Central Database successfully initialized");
 	}
@@ -63,15 +62,16 @@ public class MinecadePersistence {
 	 *            the buttercoins
 	 * @return true, if successful
 	 */
-	public boolean addCoins(String username, long buttercoins) {
-		if (!username.isEmpty() && this.connect()) {
-			username = username.toLowerCase();
+	public boolean addCoins(UUID uuid, long buttercoins) {
+		if (uuid != null) {
 			PreparedStatement stmt = null;
+			String id = uuid.toString().replaceAll("-", "");
 			try {
-				stmt = this.connection
-						.prepareStatement("UPDATE accounts SET butter_coins = butter_coins + ? WHERE username = ?");
+				stmt = getConnection()
+						.prepareStatement(
+								"UPDATE accounts SET butter_coins = butter_coins + ? WHERE uuid = ?");
 				stmt.setLong(1, buttercoins);
-				stmt.setString(2, username);
+				stmt.setString(2, id);
 				int affectedRecords = stmt.executeUpdate();
 
 				if (affectedRecords > 0) {
@@ -79,7 +79,7 @@ public class MinecadePersistence {
 				}
 			} catch (final SQLException e) {
 				this.plugin.getLogger().severe(
-						"Failed update player butter coins: " + username);
+						"Failed update player butter coins: " + uuid);
 				e.printStackTrace();
 
 				return false;
@@ -91,7 +91,7 @@ public class MinecadePersistence {
 				} catch (final SQLException e) {
 					this.plugin.getLogger().severe(
 							"Error closing resources while updating player butter coins: "
-									+ username);
+									+ uuid);
 					e.printStackTrace();
 				}
 			}
@@ -110,34 +110,35 @@ public class MinecadePersistence {
 	 * @param bannedBy
 	 *            the banned by
 	 */
-	public boolean banPlayer(String player, String reason, String bannedBy) {
-		if (!player.isEmpty() && this.connect()) {
-			player = player.toLowerCase();
+	public boolean banPlayer(UUID uuid, String reason, String bannedBy) {
+		if (uuid != null) {
 			PreparedStatement stmt = null;
 			ResultSet set = null;
-
+			String id = uuid.toString().replaceAll("-", "");
 			try {
 
-				stmt = this.connection
-						.prepareStatement("SELECT * FROM bans WHERE username = ?");
-				stmt.setString(1, player);
+				stmt = getConnection().prepareStatement(
+						"SELECT * FROM bans WHERE uuid = ?");
+				stmt.setString(1, id);
 				set = stmt.executeQuery();
 
 				if (set.first()) {
 					stmt.close();
-					stmt = this.connection
-							.prepareStatement("UPDATE bans SET is_banned = ?, reason = ?, banned_date = ?, banned_by = ? WHERE username = ?");
+					stmt = getConnection()
+							.prepareStatement(
+									"UPDATE bans SET is_banned = ?, reason = ?, banned_date = ?, banned_by = ? WHERE uuid = ?");
 					stmt.setBoolean(1, true);
 					stmt.setString(2, reason);
 					stmt.setDate(3, new java.sql.Date(new Date().getTime()));
 					stmt.setString(4, bannedBy);
-					stmt.setString(5, player);
+					stmt.setString(5, id);
 				} else {
 					// Player does not exist in database
 					stmt.close();
-					stmt = this.connection
-							.prepareStatement("INSERT INTO bans (username, is_banned, reason, banned_date, banned_by) VALUES (?,?,?,?,?)");
-					stmt.setString(1, player);
+					stmt = getConnection()
+							.prepareStatement(
+									"INSERT INTO bans (uuid, is_banned, reason, banned_date, banned_by) VALUES (?,?,?,?,?)");
+					stmt.setString(1, id);
 					stmt.setBoolean(2, true);
 					stmt.setString(3, reason);
 					stmt.setDate(4, new java.sql.Date(new Date().getTime()));
@@ -146,11 +147,10 @@ public class MinecadePersistence {
 
 				stmt.executeUpdate();
 				this.plugin.getLogger().info(
-						"'" + player + "' was banned by '" + bannedBy
+						"'" + uuid + "' was banned by '" + bannedBy
 								+ "' for reason:" + reason);
 			} catch (final SQLException e) {
-				this.plugin.getLogger().severe(
-						"Failed to ban player: " + player);
+				this.plugin.getLogger().severe("Failed to ban player: " + uuid);
 				e.printStackTrace();
 
 				return false;
@@ -166,7 +166,7 @@ public class MinecadePersistence {
 				} catch (final SQLException e) {
 					this.plugin.getLogger().severe(
 							"Error closing resources while banning player: "
-									+ player);
+									+ uuid);
 					e.printStackTrace();
 				}
 			}
@@ -175,35 +175,6 @@ public class MinecadePersistence {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Connect to the database.
-	 * 
-	 * @return true, if successful
-	 */
-	protected boolean connect() {
-		if (this.connection != null) {
-			try {
-				if (this.connection.isValid(1)) {
-					return true;
-				}
-			} catch (final SQLException e) {
-				// This only throws an SQLException if the number input is less
-				// than 0
-			}
-		}
-
-		try {
-			this.connection = DriverManager.getConnection(this.centralJdbcUrl,
-					this.centralDbUsername, this.centralDbpassword);
-			return true;
-		} catch (final SQLException e) {
-			this.plugin.getLogger()
-					.severe("Failed to connect to the database!");
-			e.printStackTrace();
-			return false;
-		}
 	}
 
 	/**
@@ -312,41 +283,41 @@ public class MinecadePersistence {
 	// }
 
 	public List<String> getAllBannedAccounts() {
-		if (this.connect()) {
-			List<String> accounts = new ArrayList<String>();
-			PreparedStatement stmt = null;
-			ResultSet set = null;
 
+		List<String> accounts = new ArrayList<String>();
+		PreparedStatement stmt = null;
+		ResultSet set = null;
+
+		try {
+			stmt = getConnection().prepareStatement(
+					"SELECT uuid FROM bans where is_banned = 1;");
+			set = stmt.executeQuery();
+
+			while (set.next()) {
+				accounts.add(set.getString("uuid"));
+			}
+
+			return accounts;
+		} catch (Exception ex) {
+			this.plugin.getLogger().severe(
+					"Failed to load all bans from database");
+			ex.printStackTrace();
+		} finally {
 			try {
-				stmt = this.connection
-						.prepareStatement("SELECT username FROM bans where is_banned = 1;");
-				set = stmt.executeQuery();
-
-				while (set.next()) {
-					accounts.add(set.getString("username"));
+				if (stmt != null) {
+					stmt.close();
 				}
 
-				return accounts;
-			} catch (Exception ex) {
+				if (set != null) {
+					set.close();
+				}
+			} catch (final SQLException e) {
 				this.plugin.getLogger().severe(
-						"Failed to load all bans from database");
-				ex.printStackTrace();
-			} finally {
-				try {
-					if (stmt != null) {
-						stmt.close();
-					}
-
-					if (set != null) {
-						set.close();
-					}
-				} catch (final SQLException e) {
-					this.plugin.getLogger().severe(
-							"Error closing resources while loading all bans.");
-					e.printStackTrace();
-				}
+						"Error closing resources while loading all bans.");
+				e.printStackTrace();
 			}
 		}
+
 		return null;
 	}
 
@@ -356,55 +327,77 @@ public class MinecadePersistence {
 	 * @return the all minecade accounts
 	 */
 	public List<MinecadeAccount> getAllMinecadeAccounts() {
-		if (this.connect()) {
-			List<MinecadeAccount> accounts = new ArrayList<MinecadeAccount>();
-			PreparedStatement stmt = null;
-			ResultSet set = null;
 
+		List<MinecadeAccount> accounts = new ArrayList<MinecadeAccount>();
+		PreparedStatement stmt = null;
+		ResultSet set = null;
+
+		try {
+			stmt = getConnection().prepareStatement("SELECT * FROM accounts;");
+			set = stmt.executeQuery();
+
+			while (set.next()) {
+				MinecadeAccount account = new MinecadeAccount();
+				account.setUUID(set.getString("uuid"));
+				account.setVip(set.getBoolean("vip"));
+				account.setYoutuber(set.getBoolean("youtuber"));
+				account.setButterCoins(set.getLong("butter_coins"));
+				account.setAdmin(set.getBoolean("admin"));
+				account.setGm(set.getBoolean("gm"));
+				account.setCm(set.getBoolean("cm"));
+				account.setPet(set.getString("pet_type"));
+				account.setVipPassDate(set.getTimestamp("vip_pass_date"));
+				account.setVipPassDailyAttemps(set
+						.getInt("vip_pass_daily_attemps"));
+				accounts.add(account);
+			}
+
+			return accounts;
+		} catch (Exception ex) {
+			this.plugin.getLogger().severe(
+					"Failed to load all players fron database");
+			ex.printStackTrace();
+		} finally {
 			try {
-				stmt = this.connection
-						.prepareStatement("SELECT * FROM accounts;");
-				set = stmt.executeQuery();
-
-				while (set.next()) {
-					MinecadeAccount account = new MinecadeAccount();
-					account.setUsername(set.getString("username"));
-					account.setVip(set.getBoolean("vip"));
-					account.setYoutuber(set.getBoolean("youtuber"));
-					account.setButterCoins(set.getLong("butter_coins"));
-					account.setAdmin(set.getBoolean("admin"));
-					account.setGm(set.getBoolean("gm"));
-					account.setCm(set.getBoolean("cm"));
-					account.setPet(set.getString("pet_type"));
-					account.setVipPassDate(set.getTimestamp("vip_pass_date"));
-					account.setVipPassDailyAttemps(set
-							.getInt("vip_pass_daily_attemps"));
-					accounts.add(account);
+				if (stmt != null) {
+					stmt.close();
 				}
 
-				return accounts;
-			} catch (Exception ex) {
+				if (set != null) {
+					set.close();
+				}
+			} catch (final SQLException e) {
 				this.plugin.getLogger().severe(
-						"Failed to load all players fron database");
-				ex.printStackTrace();
-			} finally {
-				try {
-					if (stmt != null) {
-						stmt.close();
-					}
-
-					if (set != null) {
-						set.close();
-					}
-				} catch (final SQLException e) {
-					this.plugin
-							.getLogger()
-							.severe("Error closing resources while loading all players.");
-					e.printStackTrace();
-				}
+						"Error closing resources while loading all players.");
+				e.printStackTrace();
 			}
 		}
+
 		return null;
+	}
+
+	public Connection getConnection() {
+		try {
+			if (this.query_count >= 1000) {
+				if (this.con != null) {
+					this.con.close();
+				}
+
+				this.con = DriverManager.getConnection(this.centralJdbcUrl,
+						this.centralDbUsername, this.centralDbpassword);
+				this.query_count = 0;
+			}
+			if (this.con == null || this.con.isClosed()) {
+				Class.forName("com.mysql.jdbc.Driver");
+				this.con = DriverManager.getConnection(this.centralJdbcUrl,
+						this.centralDbUsername, this.centralDbpassword);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		this.query_count++;
+		return this.con;
 	}
 
 	/**
@@ -414,25 +407,28 @@ public class MinecadePersistence {
 	 *            the username
 	 * @return the sky network account
 	 */
-	public MinecadeAccount getMinecadeAccount(String username) {
-		if (!username.isEmpty() && this.connect()) {
-			username = username.toLowerCase();
+	public MinecadeAccount getMinecadeAccount(UUID uuid, String username) {
+		if (uuid != null) {
 			PreparedStatement stmt = null;
 			ResultSet set = null;
 			MinecadeAccount account = new MinecadeAccount();
-			account.setUsername(username);
+			account.setUUID(uuid);
+			String id = uuid.toString().replaceAll("-", "");
 			try {
-				stmt = this.connection
-						.prepareStatement("SELECT * FROM accounts WHERE username = ?;");
-				stmt.setString(1, username);
+				stmt = getConnection().prepareStatement(
+						"SELECT * FROM accounts WHERE uuid = ?;");
+				stmt.setString(1, id);
 				set = stmt.executeQuery();
 
 				if (!set.first()) {
 					// Player does not exist in database
 					stmt.close();
-					stmt = this.connection
-							.prepareStatement("INSERT INTO accounts(username) VALUES (?)");
-					stmt.setString(1, username);
+					stmt = getConnection()
+							.prepareStatement(
+									"INSERT INTO accounts(uuid, username) VALUES (?, ?) ON DUPLICATE KEY UPDATE uuid=?;");
+					stmt.setString(1, id);
+					stmt.setString(2, username);
+					stmt.setString(3, id);
 					stmt.executeUpdate();
 				} else {
 					account.setVip(set.getBoolean("vip"));
@@ -441,6 +437,9 @@ public class MinecadePersistence {
 					account.setAdmin(set.getBoolean("admin"));
 					account.setGm(set.getBoolean("gm"));
 					account.setCm(set.getBoolean("cm"));
+					account.setDev(set.getBoolean("dev"));
+					account.setOwner(set.getBoolean("owner"));
+					account.setTitan(set.getBoolean("titan"));
 					account.setPet(set.getString("pet_type"));
 					account.setVipPassDate(set.getTimestamp("vip_pass_date"));
 					account.setVipPassDailyAttemps(set
@@ -450,8 +449,8 @@ public class MinecadePersistence {
 				return account;
 			} catch (Exception ex) {
 				this.plugin.getLogger().severe(
-						"Failed to load data from database for player: "
-								+ username + ", error: " + ex.getMessage());
+						"Failed to load data from database for player: " + uuid
+								+ ", error: " + ex.getMessage());
 			} finally {
 				try {
 					if (stmt != null) {
@@ -464,7 +463,7 @@ public class MinecadePersistence {
 				} catch (final SQLException e) {
 					this.plugin.getLogger().severe(
 							"Error closing resources while loading from the database for player: "
-									+ username);
+									+ uuid);
 					e.printStackTrace();
 				}
 			}
@@ -483,7 +482,8 @@ public class MinecadePersistence {
 	 */
 	public boolean isPlayerAdmin(OfflinePlayer player) {
 		if (player != null) {
-			MinecadeAccount account = getMinecadeAccount(player.getName());
+			MinecadeAccount account = getMinecadeAccount(player.getUniqueId(),
+					player.getName());
 			return account != null && account.isAdmin();
 		}
 
@@ -497,15 +497,15 @@ public class MinecadePersistence {
 	 * @return player ban
 	 * @author: kvnamo
 	 */
-	public boolean isPlayerBanned(String username) {
-		if (!username.isEmpty() && this.connect()) {
-			username = username.toLowerCase();
+	public boolean isPlayerBanned(UUID uuid) {
+		if (uuid != null) {
 			PreparedStatement stmt = null;
 			ResultSet set = null;
+			String id = uuid.toString().replaceAll("-", "");
 			try {
-				stmt = this.connection
-						.prepareStatement("SELECT is_banned FROM bans WHERE username = ?");
-				stmt.setString(1, username);
+				stmt = getConnection().prepareStatement(
+						"SELECT is_banned FROM bans WHERE uuid = ?");
+				stmt.setString(1, id);
 				set = stmt.executeQuery();
 
 				if (set.first()) {
@@ -513,7 +513,7 @@ public class MinecadePersistence {
 				}
 			} catch (final SQLException e) {
 				this.plugin.getLogger().severe(
-						"Failed to fetch ban status of player: " + username);
+						"Failed to fetch ban status of player: " + uuid);
 				e.printStackTrace();
 
 				return false;
@@ -529,7 +529,7 @@ public class MinecadePersistence {
 				} catch (final SQLException e) {
 					this.plugin.getLogger().severe(
 							"Error closing resources while fetching ban status of player: "
-									+ username);
+									+ uuid);
 					e.printStackTrace();
 				}
 			}
@@ -547,7 +547,8 @@ public class MinecadePersistence {
 	 */
 	public boolean isPlayerStaff(OfflinePlayer player) {
 		if (player != null) {
-			MinecadeAccount account = getMinecadeAccount(player.getName());
+			MinecadeAccount account = getMinecadeAccount(player.getUniqueId(),
+					player.getName());
 			return account != null
 					&& (account.isGm() || account.isAdmin() || account.isCm());
 		}
@@ -564,7 +565,8 @@ public class MinecadePersistence {
 	 */
 	public boolean isPlayerStaffOrVIP(OfflinePlayer players) {
 		if (players != null) {
-			MinecadeAccount account = getMinecadeAccount(players.getName());
+			MinecadeAccount account = getMinecadeAccount(players.getUniqueId(),
+					players.getName());
 			return account != null
 					&& (account.isVip() || account.isGm() || account.isAdmin() || account
 							.isCm());
@@ -597,37 +599,37 @@ public class MinecadePersistence {
 	 * @param unbannedBy
 	 *            the unbanned by
 	 */
-	public boolean unbanPlayer(String player, String unbannedBy) {
-		if (!player.isEmpty() && this.connect()) {
-			player = player.toLowerCase();
+	public boolean unbanPlayer(UUID uuid, String unbannedBy) {
+		if (uuid != null) {
 			PreparedStatement stmt = null;
 			ResultSet set = null;
+			String id = uuid.toString().replaceAll("-", "");
 			try {
-				stmt = this.connection
-						.prepareStatement("SELECT * FROM bans WHERE username = ?");
-				stmt.setString(1, player);
+				stmt = getConnection().prepareStatement(
+						"SELECT * FROM bans WHERE uuid = ?");
+				stmt.setString(1, id);
 				set = stmt.executeQuery();
 
 				if (set.first()) {
 					stmt.close();
-					stmt = this.connection
-							.prepareStatement("UPDATE bans SET is_banned = ?, unbanned_by = ? WHERE username = ?");
+					stmt = getConnection()
+							.prepareStatement(
+									"UPDATE bans SET is_banned = ?, unbanned_by = ? WHERE uuid = ?");
 					stmt.setBoolean(1, false);
 					stmt.setString(2, unbannedBy);
-					stmt.setString(3, player);
+					stmt.setString(3, id);
 					stmt.executeUpdate();
-					this.plugin.getLogger().info(
-							"'" + player + "' was unbanned.");
+					this.plugin.getLogger()
+							.info("'" + uuid + "' was unbanned.");
 					return true;
 				} else {
-					this.plugin.getLogger()
-							.info("'" + player
-									+ "' was not found on the bans table.");
+					this.plugin.getLogger().info(
+							"'" + uuid + "' was not found on the bans table.");
 					return false;
 				}
 			} catch (final SQLException e) {
 				this.plugin.getLogger().severe(
-						"Failed to unban player: " + player);
+						"Failed to unban player: " + uuid);
 				e.printStackTrace();
 
 				return false;
@@ -643,13 +645,13 @@ public class MinecadePersistence {
 				} catch (final SQLException e) {
 					this.plugin.getLogger().severe(
 							"Error closing resources while unbanning player: "
-									+ player);
+									+ uuid);
 					e.printStackTrace();
 				}
 			}
 		}
 		this.plugin.getLogger().info(
-				"Unable to connect to the database to unban player: '" + player
+				"Unable to connect to the database to unban player: '" + uuid
 						+ "'");
 		return false;
 	}

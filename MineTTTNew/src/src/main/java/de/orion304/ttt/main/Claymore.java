@@ -132,7 +132,9 @@ public class Claymore {
 		Location location = this.block.getLocation();
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			if (player.getWorld() == this.block.getWorld()) {
-				if (player.getLocation().distance(location) < radius) {
+				TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
+				if (player.getLocation().distance(location) < radius
+						&& Tplayer.getTeam() != PlayerTeam.NONE) {
 					player.damage(Double.MAX_VALUE);
 				}
 			}

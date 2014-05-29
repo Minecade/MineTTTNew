@@ -6,6 +6,8 @@ import java.lang.reflect.Method;
 
 import org.bukkit.Location;
 
+import src.main.java.org.orion304.enderbar.Util;
+
 public class FakeDragon {
 	public static final float MAX_HEALTH = 200;
 	private int x;

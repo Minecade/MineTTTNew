@@ -28,20 +28,19 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Scoreboard;
 
-import src.main.java.de.orion304.ttt.enderbar.BarAPI;
 import src.main.java.de.orion304.ttt.players.DeathLocation;
 import src.main.java.de.orion304.ttt.players.DetectiveCompass;
 import src.main.java.de.orion304.ttt.players.PlayerTeam;
 import src.main.java.de.orion304.ttt.players.TTTPlayer;
-import src.main.java.org.orion304.utils.Hologram;
+import src.main.java.org.orion304.enderbar.BarAPI;
+import src.main.java.org.orion304.utils.HologramOld;
 import src.main.java.org.orion304.utils.Justification;
 import src.main.java.org.orion304.utils.MathUtils;
 
 public class MainThread implements Runnable {
 
-	public static final String currencyName = "Coin";
-
 	private static long preptime = FileManager.preparationTime + 500L;
+	private static final long gracetime = 10 * 1000L;
 
 	// Variables for use in processing
 	private final MineTTT plugin;
@@ -53,8 +52,9 @@ public class MainThread implements Runnable {
 	private ConcurrentHashMap<String, List<String>> arenaLores = new ConcurrentHashMap<>();
 	private ConcurrentHashMap<String, ChatColor> arenaColors = new ConcurrentHashMap<>();
 	private final List<String> loadedArenaKeys = new ArrayList<>();
+	private String arenaName;
 	private Location arenaLocation, lobbyLocation;
-	private final double radius = 4.5;
+	private final double radius = 34.5;
 	private final Random random;
 
 	private GameState state = GameState.OFF;
@@ -62,8 +62,11 @@ public class MainThread implements Runnable {
 	private long fireworkTick = 0;
 	private boolean traitorsWon = false;
 
+	private boolean ended = false;
 	private final boolean useHolograms = true;
-	private final Hologram hologram, vipHologram, siteHologram, nuggetHologram;
+
+	// private final HologramOld hologram, vipHologram, siteHologram,
+	// nuggetHologram;
 
 	/**
 	 * Creates a new MainThread for MineTTT, which handles anything to do with
@@ -91,40 +94,9 @@ public class MainThread implements Runnable {
 					.getSpawnLocation();
 		}
 
-		String traitor = ChatColor.RED.toString() + ChatColor.ITALIC.toString()
-				+ ChatColor.BOLD + "Traitor";
-		String innocent = ChatColor.AQUA.toString()
-				+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Innocent";
-		String detective = ChatColor.DARK_AQUA.toString()
-				+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Detective";
-		String reset = ChatColor.RESET.toString() + ChatColor.BOLD.toString();
-
-		this.hologram = new Hologram(instance, ChatColor.GOLD.toString()
-				+ ChatColor.BOLD + ChatColor.UNDERLINE + "WELCOME TO MINETTT!",
-				" ",
-				reset + "MineTTT is a complex game about betrayal and trust!",
-				reset + "Be a " + detective + reset + " to hunt down "
-						+ traitor + "s!", reset + "Be a " + traitor + reset
-						+ " to eliminate " + innocent + "s" + reset + " and "
-						+ detective + "s!", reset + "Or be an " + innocent
-						+ reset + " to find, hide from, and eliminate "
-						+ traitor + "s!");
-		this.vipHologram = new Hologram(instance, Justification.LEFT,
-				ChatColor.AQUA + "VIP PERKS:", "\u2022Two map votes",
-				"\u2022Double the coins", "\u2022Join full servers",
-				"\u2022Choose your role", "\u2022Choose to spectate");
-		this.siteHologram = new Hologram(instance, Justification.LEFT,
-				"minecade.com", "twitter.com/Minecade",
-				"fb.me/LegendaryNetwork");
-		this.nuggetHologram = new Hologram(instance, Justification.LEFT,
-				ChatColor.GOLD + "Golden Nugget Info:",
-				"Earn gold nuggets in game by killing",
-				"  appropriate players.",
-				"Click on a gold nugget as a traitor",
-				"  to open the shop and buy", "  unique, powerful items.",
-				"Nuggets not used at the end of the",
-				"  game are turned into coins.");
-		showHologram();
+		for (Player player : Bukkit.getOnlinePlayers()) {
+			showHologram(player);
+		}
 	}
 
 	/**
@@ -159,10 +131,10 @@ public class MainThread implements Runnable {
 	 */
 	public void destroyHologram() {
 		if (this.useHolograms) {
-			this.hologram.destroy();
-			this.vipHologram.destroy();
-			this.siteHologram.destroy();
-			this.nuggetHologram.destroy();
+			// this.hologram.destroy();
+			// this.vipHologram.destroy();
+			// this.siteHologram.destroy();
+			// this.nuggetHologram.destroy();
 		}
 	}
 
@@ -174,6 +146,8 @@ public class MainThread implements Runnable {
 	 *            by completing its normal course.
 	 */
 	public void endGame(boolean forced) {
+		this.ended = !forced;
+		this.arenaName = null;
 		this.state = GameState.CELEBRATIONS;
 		this.fireworkTick = 0;
 		this.celebrationStartTime = System.currentTimeMillis();
@@ -326,6 +300,10 @@ public class MainThread implements Runnable {
 		return lore;
 	}
 
+	public String getArenaName() {
+		return this.arenaName;
+	}
+
 	/**
 	 * Returns a color based on the integer parameter
 	 * 
@@ -457,7 +435,7 @@ public class MainThread implements Runnable {
 
 			}
 
-			showHologram();
+			// showHologram();
 			this.celebrationStartTime = 0;
 
 			if (!forced) {
@@ -510,6 +488,7 @@ public class MainThread implements Runnable {
 					Tplayer.resetPlayer();
 					TTTPlayer.allRegisterPlayer(Tplayer);
 					Tplayer.registerAllPlayers();
+					Tplayer.giveSpectatorInventory();
 					player.sendMessage(FileManager.spectatorColor
 							+ "You are now spectating.");
 					BarAPI.setMessage(player, FileManager.spectatorColor
@@ -528,6 +507,10 @@ public class MainThread implements Runnable {
 	public boolean isGameRunning() {
 		return this.state == GameState.GAME_RUNNING
 				|| this.state == GameState.CELEBRATIONS;
+	}
+
+	public boolean isOver() {
+		return this.ended;
 	}
 
 	/**
@@ -572,8 +555,8 @@ public class MainThread implements Runnable {
 	 * Reloads the holograms.
 	 */
 	public void reloadHologram() {
-		destroyHologram();
-		showHologram();
+		// destroyHologram();
+		// showHologram();
 	}
 
 	/**
@@ -589,7 +572,7 @@ public class MainThread implements Runnable {
 		switch (this.state) {
 		case OFF:
 			Player[] players = this.server.getOnlinePlayers();
-			if (players.length >= this.playerThreshold) {
+			if (players.length >= this.playerThreshold && !this.ended) {
 				startPreparations();
 			}
 
@@ -646,23 +629,65 @@ public class MainThread implements Runnable {
 	/**
 	 * Displays the holograms.
 	 */
-	public void showHologram() {
+	public void showHologram(Player player) {
 		if (this.useHolograms) {
+			String traitor = ChatColor.RED.toString()
+					+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Traitor";
+			String innocent = ChatColor.AQUA.toString()
+					+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Innocent";
+			String detective = ChatColor.DARK_AQUA.toString()
+					+ ChatColor.ITALIC.toString() + ChatColor.BOLD
+					+ "Detective";
+			String reset = ChatColor.RESET.toString()
+					+ ChatColor.BOLD.toString();
+
+			HologramOld hologram = new HologramOld(
+					this.plugin,
+					ChatColor.GOLD.toString() + ChatColor.BOLD
+							+ ChatColor.UNDERLINE + "WELCOME TO MINETTT, "
+							+ player.getName() + "!",
+					" ",
+					reset
+							+ "MineTTT is a complex game about betrayal and trust!",
+					reset + "Be a " + detective + reset + " to hunt down "
+							+ traitor + "s!", reset + "Be a " + traitor + reset
+							+ " to eliminate " + innocent + "s" + reset
+							+ " and " + detective + "s!", reset + "Or be an "
+							+ innocent + reset
+							+ " to find, hide from, and eliminate " + traitor
+							+ "s!");
+			HologramOld vipHologram = new HologramOld(this.plugin,
+					Justification.LEFT, ChatColor.AQUA + "VIP PERKS:",
+					"\u2022Two map votes", "\u2022Double the coins",
+					"\u2022Join full servers", "\u2022Choose your role",
+					"\u2022Choose to spectate");
+			HologramOld siteHologram = new HologramOld(this.plugin,
+					Justification.LEFT, "minecade.com", "twitter.com/Minecade",
+					"fb.me/LegendaryNetwork");
+			HologramOld nuggetHologram = new HologramOld(this.plugin,
+					Justification.LEFT, ChatColor.GOLD + "Golden Nugget Info:",
+					"Earn gold nuggets in game by killing",
+					"  appropriate players.",
+					"Click on a gold nugget as a traitor",
+					"  to open the shop and buy", "  unique, powerful items.",
+					"Nuggets not used at the end of the",
+					"  game are turned into coins.");
+
 			Location location = this.lobbyLocation.clone();
 			location.add(-1, 1.5, 7);
-			this.hologram.show(location);
+			hologram.show(location, player);
 
 			Location vipLocation = this.lobbyLocation.clone();
 			vipLocation.add(-10, 1.5, 15);
-			this.vipHologram.show(vipLocation);
+			vipHologram.show(vipLocation, player);
 
 			Location siteLocation = this.lobbyLocation.clone();
 			siteLocation.add(-10, 1.5, -9);
-			this.siteHologram.show(siteLocation);
+			siteHologram.show(siteLocation, player);
 
 			Location nuggetLocation = this.lobbyLocation.clone();
 			nuggetLocation.add(10, 1.5, -7);
-			this.nuggetHologram.show(nuggetLocation);
+			nuggetHologram.show(nuggetLocation, player);
 		}
 	}
 
@@ -671,7 +696,8 @@ public class MainThread implements Runnable {
 	 * players choose to play.
 	 */
 	private void startGame() {
-		this.arenaLocation = TTTPlayer.getWinningLocation();
+		this.arenaName = TTTPlayer.getWinningLocation();
+		this.arenaLocation = getArenaLocation(this.arenaName);
 		this.state = GameState.GAME_RUNNING;
 		TTTPlayer.reset();
 		makeAllVisible();

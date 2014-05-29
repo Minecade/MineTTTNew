@@ -4,8 +4,8 @@ import org.bukkit.ChatColor;
 
 public enum Rank {
 
-	GM(ChatColor.AQUA, 3), MGM(ChatColor.GOLD, 3), Developer(ChatColor.RED, 3), Owner(
-			ChatColor.DARK_RED, 4), VIP(ChatColor.GREEN, 1), PRO(
+	GM(ChatColor.AQUA, 3), MGM(ChatColor.GOLD, 4), Developer(ChatColor.RED, 4), Owner(
+			ChatColor.DARK_RED, 5), VIP(ChatColor.GREEN, 1), PRO(
 			ChatColor.BLUE, 2), NONE(ChatColor.WHITE, 0);
 
 	public static Rank getRank(String string) {

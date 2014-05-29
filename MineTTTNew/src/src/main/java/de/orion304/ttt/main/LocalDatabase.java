@@ -11,7 +11,7 @@ import src.main.java.org.orion304.SQLHandler;
 public class LocalDatabase {
 
 	private final MineTTT plugin;
-	private final SQLHandler handler;
+	final SQLHandler handler;
 
 	private final String database;
 
@@ -81,6 +81,36 @@ public class LocalDatabase {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		}
+	}
+
+	public TTTPlayer loadPlayer(String name) {
+		try {
+			PreparedStatement statement = this.handler
+					.getStatement("SELECT * FROM players WHERE username=?;");
+			statement.setString(1, name);
+			ResultSet set = this.handler.get(statement);
+			if (set.first()) {
+				int karma = set.getInt("karma");
+				long banDate = set.getLong("banDate");
+				long banDuration = set.getLong("banDuration");
+				String rank = set.getString("rank");
+				int traitorKillsAsInnocent = set
+						.getInt("traitorKillsAsInnocent");
+				int traitorKillsAsDetective = set
+						.getInt("traitorKillsAsDetective");
+				int detectiveKills = set.getInt("detectiveKills");
+				int innocentKills = set.getInt("innocentKills");
+				int gamesPlayed = set.getInt("gamesPlayed");
+				return new TTTPlayer(name, karma, banDate, banDuration, rank,
+						traitorKillsAsDetective, detectiveKills, innocentKills,
+						traitorKillsAsInnocent, gamesPlayed);
+			} else {
+				return new TTTPlayer(name);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
 		}
 	}
 

@@ -91,7 +91,7 @@ public class FileManager {
 	public static int PlayerSQLport = 3306;
 	private static boolean UsePlayerSQL = false;
 
-	private LocalDatabase database;
+	public LocalDatabase database;
 
 	/**
 	 * Instantiates a FileHandler, which handles all hard files associated with
@@ -254,6 +254,10 @@ public class FileManager {
 		ChatColor color = ChatColor.WHITE;
 		this.locations.set(key + ".color", color.name());
 		return color;
+	}
+
+	public int getID() {
+		return this.config.getInt("ID", 0);
 	}
 
 	/**
@@ -421,7 +425,7 @@ public class FileManager {
 	private void loadPlayers() {
 
 		if (UsePlayerSQL) {
-			this.database.loadAllPlayers();
+			// this.database.loadAllPlayers();
 		} else {
 			// Make the folder containing these hard files, if necessary
 			if (!this.plugin.getDataFolder().exists()) {
@@ -537,6 +541,7 @@ public class FileManager {
 		this.config.set(PlayerSQLUsernameLabel, PlayerSQLusername);
 		this.config.set(PlayerSQLPasswordLabel, PlayerSQLpassword);
 		this.config.set(PlayerSQLDatabaseNameLabel, PlayerSQLdatabaseName);
+		this.config.set("ID", getID());
 		saveConfig();
 	}
 

@@ -40,7 +40,8 @@ public class ChatManager {
 			senderName = TTTPlayer.getDisplayedName(sender, receiver);
 			PlayerTeam receiverTeam = receiver.getTeam();
 			if (senderTeam == PlayerTeam.NONE) {
-				if (receiverTeam == PlayerTeam.NONE) {
+				if (receiverTeam == PlayerTeam.NONE
+						|| this.plugin.thread.getGameStatus() != GameState.GAME_RUNNING) {
 					p.sendMessage(senderName + ChatColor.RESET.toString()
 							+ ChatColor.GRAY + ": " + message);
 				}

@@ -1,5 +1,11 @@
 package src.main.java.de.orion304.ttt.main;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Server;
@@ -33,6 +39,7 @@ public class MineTTT extends JavaPlugin {
 		return plugin;
 	}
 
+	private ServerStatusThread serverStatusThread;
 	private Server server;
 	public Teams teamHandler;
 	public MainThread thread;
@@ -40,6 +47,7 @@ public class MineTTT extends JavaPlugin {
 	private CommandHandler commandHandler;
 	public FileManager fileManager;
 	public MinecadePersistence minecade;
+	public int id;
 
 	public ChestHandler chestHandler;
 
@@ -81,6 +89,7 @@ public class MineTTT extends JavaPlugin {
 		}
 
 		this.playerListener.resetDeadPlayers();
+		this.serverStatusThread.update(true);
 	}
 
 	/**
@@ -89,50 +98,69 @@ public class MineTTT extends JavaPlugin {
 	 */
 	@Override
 	public void onEnable() {
-		plugin = this;
-		this.server = getServer();
-		this.manager = this.server.getPluginManager();
-		registerListeners();
-		this.teamHandler = new Teams(this);
-		this.commandHandler = new CommandHandler(this);
-		this.fileManager = new FileManager(this);
-		this.thread = new MainThread(this);
-		this.chestHandler = new ChestHandler(this);
-
 		try {
-			this.minecade = new MinecadePersistence(this,
-					FileManager.SQLhostname, FileManager.SQLport,
-					FileManager.SQLdatabaseName, FileManager.SQLusername,
-					FileManager.SQLpassword);
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			plugin = this;
+			this.server = getServer();
+			this.manager = this.server.getPluginManager();
+			registerListeners();
+			this.teamHandler = new Teams(this);
+			this.commandHandler = new CommandHandler(this);
+			this.fileManager = new FileManager(this);
+			this.thread = new MainThread(this);
+			this.chestHandler = new ChestHandler(this);
+			this.id = this.fileManager.getID();
+			this.serverStatusThread = new ServerStatusThread(this);
+
+			try {
+				this.minecade = new MinecadePersistence(this,
+						FileManager.SQLhostname, FileManager.SQLport,
+						FileManager.SQLdatabaseName, FileManager.SQLusername,
+						FileManager.SQLpassword);
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+			TTTPlayer.setPlugin(this);
+
+			this.scheduler = this.server.getScheduler();
+
+			this.scheduler.scheduleSyncRepeatingTask(this, this.thread,
+					this.delay, this.tick);
+			this.scheduler.scheduleSyncRepeatingTask(this,
+					this.serverStatusThread, 20, 20);
+
+			for (World world : Bukkit.getWorlds()) {
+				world.setAutoSave(false);
+				world.setSpawnFlags(false, false);
+				world.setStorm(false);
+				world.setThundering(false);
+				world.setTime(500);
+				world.setWeatherDuration(Integer.MAX_VALUE);
+				world.setGameRuleValue("commandBlockOutput", "false");
+				world.setGameRuleValue("doDaylightCycle", "false");
+				world.setGameRuleValue("doFireTick", "false");
+				world.setGameRuleValue("doMobLoot", "false");
+				world.setGameRuleValue("doMobSpawning", "false");
+				world.setGameRuleValue("doTileDrops", "false");
+				world.setGameRuleValue("keepInventory", "false");
+				world.setGameRuleValue("mobGriefing", "false");
+			}
+
+			TTTPlayer.newScoreboards();
+			TTTPlayer.showAllPreGameScoreboards();
+		} catch (Exception e) {
+			this.server
+					.broadcastMessage("The server has encountered an error and is restarting.");
+			String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss")
+					.format(Calendar.getInstance().getTime());
+			File file = new File(getDataFolder(), "crash" + timeStamp + ".log");
+			file.getParentFile().mkdirs();
+			try {
+				e.printStackTrace(new PrintWriter(file));
+			} catch (FileNotFoundException e1) {
+				e1.printStackTrace();
+			}
+			this.server.shutdown();
 		}
-		TTTPlayer.setPlugin(this);
-
-		this.scheduler = this.server.getScheduler();
-
-		this.scheduler.scheduleSyncRepeatingTask(this, this.thread, this.delay,
-				this.tick);
-
-		for (World world : Bukkit.getWorlds()) {
-			world.setAutoSave(false);
-			world.setSpawnFlags(false, false);
-			world.setStorm(false);
-			world.setThundering(false);
-			world.setTime(500);
-			world.setWeatherDuration(Integer.MAX_VALUE);
-			world.setGameRuleValue("commandBlockOutput", "false");
-			world.setGameRuleValue("doDaylightCycle", "false");
-			world.setGameRuleValue("doFireTick", "false");
-			world.setGameRuleValue("doMobLoot", "false");
-			world.setGameRuleValue("doMobSpawning", "false");
-			world.setGameRuleValue("doTileDrops", "false");
-			world.setGameRuleValue("keepInventory", "false");
-			world.setGameRuleValue("mobGriefing", "false");
-		}
-
-		TTTPlayer.newScoreboards();
-		TTTPlayer.showAllPreGameScoreboards();
 	}
 
 	/**
