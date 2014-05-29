@@ -1,5 +1,5 @@
 name: MineTTT
-main: src.main.java.de.orion304.ttt.main.MineTTT
+main: com.minecade.minettt.main.MineTTT
 version: 0.0.1
 commands:
     setarenalocation:
