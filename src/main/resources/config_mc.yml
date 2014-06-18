@@ -1,0 +1,29 @@
+ID: 1
+Properties:
+  minimumNumberOfPlayers: 5
+  preparationTime: 90000
+  detectiveFindBodyRange: 5.0
+  detectiveCompassDuration: 5000
+  precentTraitors: 0.25
+  percentDetectives: 0.125
+  karmaThreshold: 200
+  banDuration: 300000
+  chatItemCooldown: 10000
+Colors:
+  traitor: RED
+  innocent: WHITE
+  detective: AQUA
+  spectator: GRAY
+Minecade_SQL:
+  hostname: 72.20.25.22
+  port: 3306
+  username: minetttuser
+  password: LOa9rZ7xKd5D
+  database: minecade
+Player_SQL:
+  use: true
+  hostname: 72.20.25.22
+  port: 3306
+  username: minetttuser
+  password: LOa9rZ7xKd5D
+  database: minettt
