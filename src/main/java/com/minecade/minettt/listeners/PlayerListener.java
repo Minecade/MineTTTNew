@@ -57,6 +57,7 @@ import com.minecade.minettt.main.Tools;
 import com.minecade.minettt.players.DeathLocation;
 import com.minecade.minettt.players.PlayerTeam;
 import com.minecade.minettt.players.TTTPlayer;
+
 import org.orion304.utils.HologramOld;
 
 public class PlayerListener implements Listener {
@@ -662,8 +663,8 @@ public class PlayerListener implements Listener {
 		skull.setSkullType(SkullType.PLAYER);
 		skull.update(true, true);
 
-		HologramOld hologram = new HologramOld(this.plugin, "Here lies "
-				+ player.getDisplayName());
+		HologramOld hologram = new HologramOld(this.plugin, String.format( 
+                MineTTT.getPlugin().getMessage("playerlistener.lies"), player.getDisplayName()));
 		Location location = block.getLocation().clone();
 		location.add(0, 1, 0);
 		hologram.show(location);

@@ -774,19 +774,13 @@ public class TTTPlayer {
 	/**
 	 * Loads the colors of the teams.
 	 */
-	public static void loadColors() {
-		standardDetectiveLabel = Bukkit
-				.getOfflinePlayer(FileManager.detectiveColor + "Detectives:");
-		standardTraitorLabel = Bukkit.getOfflinePlayer(FileManager.traitorColor
-				+ "Traitors:");
-		standardInnocentLabel = Bukkit
-				.getOfflinePlayer(FileManager.innocentColor + "Innocents:");
-		boldDetectiveLabel = Bukkit.getOfflinePlayer(FileManager.detectiveColor
-				+ bold + "Detectives:");
-		boldTraitorLabel = Bukkit.getOfflinePlayer(FileManager.traitorColor
-				+ bold + "Traitors:");
-		boldInnocentLabel = Bukkit.getOfflinePlayer(FileManager.innocentColor
-				+ bold + "Innocents:");
+    public static void loadColors() {
+		standardDetectiveLabel = Bukkit.getOfflinePlayer(MineTTT.getPlugin().getMessage("tttplayer.detectivelabel"));
+		standardTraitorLabel = Bukkit.getOfflinePlayer(MineTTT.getPlugin().getMessage("tttplayer.traitorlabel"));
+		standardInnocentLabel = Bukkit.getOfflinePlayer(MineTTT.getPlugin().getMessage("tttplayer.innocentlabel"));
+		boldDetectiveLabel = Bukkit.getOfflinePlayer(MineTTT.getPlugin().getMessage("tttplayer.detectivelabelbold"));
+		boldTraitorLabel = Bukkit.getOfflinePlayer(MineTTT.getPlugin().getMessage("tttplayer.traitorlabelbold"));
+		boldInnocentLabel = Bukkit.getOfflinePlayer(MineTTT.getPlugin().getMessage("tttplayer.innocentlabelbold"));
 	}
 
 	/**
