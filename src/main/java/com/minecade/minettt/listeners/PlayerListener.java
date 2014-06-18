@@ -552,6 +552,8 @@ public class PlayerListener implements Listener {
 		Player player = event.getPlayer();
 
 		TTTPlayer.handleJoin(player);
+		
+		event.setJoinMessage(null);
 
 	}
 
@@ -616,6 +618,7 @@ public class PlayerListener implements Listener {
 	public void onPlayerQuit(PlayerQuitEvent event) {
 		Player player = event.getPlayer();
 		TTTPlayer.handleLeave(player);
+		event.setQuitMessage(null);
 	}
 
 	/**
