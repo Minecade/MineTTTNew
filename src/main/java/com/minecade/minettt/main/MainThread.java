@@ -159,13 +159,13 @@ public class MainThread implements Runnable {
 			this.traitorsWon = false;
 		}
 
-		String endMessage = ChatColor.BOLD + "The game has ended! ";
+		String endMessage = MineTTT.getPlugin().getMessage("mainthread.end");
 		if (this.traitorsWon) {
 			endMessage = FileManager.traitorColor + endMessage;
-			endMessage += "The traitors were victorious!";
+			endMessage += MineTTT.getPlugin().getMessage("mainthread.traitors");
 		} else {
 			endMessage = FileManager.detectiveColor + endMessage;
-			endMessage += " The detectives were victorious!";
+			endMessage += MineTTT.getPlugin().getMessage("mainthread.detectives");
 		}
 
 		if (!forced) {
@@ -296,7 +296,7 @@ public class MainThread implements Runnable {
 			return this.arenaLores.get(key);
 		}
 		List<String> lore = new ArrayList<>();
-		lore.add("There was an error in retrieving what should be written here.");
+		lore.add(MineTTT.getPlugin().getMessage("mainthread.error"));
 		return lore;
 	}
 
@@ -489,10 +489,8 @@ public class MainThread implements Runnable {
 					TTTPlayer.allRegisterPlayer(Tplayer);
 					Tplayer.registerAllPlayers();
 					Tplayer.giveSpectatorInventory();
-					player.sendMessage(FileManager.spectatorColor
-							+ "You are now spectating.");
-					BarAPI.setMessage(player, FileManager.spectatorColor
-							+ "You are spectating.");
+					player.sendMessage(FileManager.spectatorColor + MineTTT.getPlugin().getMessage("mainthread.spectating"));
+					BarAPI.setMessage(player, FileManager.spectatorColor + MineTTT.getPlugin().getMessage("mainthread.spectating"));
 					teleportPlayer(player, this.arenaLocation);
 				}
 			}
@@ -585,8 +583,7 @@ public class MainThread implements Runnable {
 				break;
 			}
 			if ((remainingtime - 1) / 10 != this.lastannouncetime) {
-				this.server.broadcastMessage(ChatColor.LIGHT_PURPLE
-						+ "The game begins in " + remainingtime + " seconds!");
+				this.server.broadcastMessage(String.format(MineTTT.getPlugin().getMessage("mainthread.game"), remainingtime));
 				this.lastannouncetime = (remainingtime - 1) / 10;
 			}
 			break;
@@ -631,47 +628,34 @@ public class MainThread implements Runnable {
 	 */
 	public void showHologram(Player player) {
 		if (this.useHolograms) {
-			String traitor = ChatColor.RED.toString()
-					+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Traitor";
-			String innocent = ChatColor.AQUA.toString()
-					+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Innocent";
-			String detective = ChatColor.DARK_AQUA.toString()
-					+ ChatColor.ITALIC.toString() + ChatColor.BOLD
-					+ "Detective";
+//			String traitor = MineTTT.getPlugin().getMessage("mainthread.")ChatColor.RED.toString()
+//					+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Traitor";
+//			String innocent = MineTTT.getPlugin().getMessage("mainthread.")ChatColor.AQUA.toString()
+//					+ ChatColor.ITALIC.toString() + ChatColor.BOLD + "Innocent";
+//			String detective = MineTTT.getPlugin().getMessage("mainthread.")ChatColor.DARK_AQUA.toString()
+//					+ ChatColor.ITALIC.toString() + ChatColor.BOLD
+//					+ "Detective";
 			String reset = ChatColor.RESET.toString()
 					+ ChatColor.BOLD.toString();
 
 			HologramOld hologram = new HologramOld(
-					this.plugin,
-					ChatColor.GOLD.toString() + ChatColor.BOLD
-							+ ChatColor.UNDERLINE + "WELCOME TO MINETTT, "
-							+ player.getName() + "!",
+					this.plugin, String.format(MineTTT.getPlugin().getMessage("mainthread.welcome"), player.getName()),
 					" ",
-					reset
-							+ "MineTTT is a complex game about betrayal and trust!",
-					reset + "Be a " + detective + reset + " to hunt down "
-							+ traitor + "s!", reset + "Be a " + traitor + reset
-							+ " to eliminate " + innocent + "s" + reset
-							+ " and " + detective + "s!", reset + "Or be an "
-							+ innocent + reset
-							+ " to find, hide from, and eliminate " + traitor
-							+ "s!");
+					reset + MineTTT.getPlugin().getMessage("mainthread.description1"),
+					 MineTTT.getPlugin().getMessage("mainthread.description2"));
 			HologramOld vipHologram = new HologramOld(this.plugin,
-					Justification.LEFT, ChatColor.AQUA + "VIP PERKS:",
-					"\u2022Two map votes", "\u2022Double the coins",
-					"\u2022Join full servers", "\u2022Choose your role",
-					"\u2022Choose to spectate");
+					Justification.LEFT, MineTTT.getPlugin().getMessage("mainthread.vip"),
+					MineTTT.getPlugin().getMessage("mainthread.mapvotes"), MineTTT.getPlugin().getMessage("mainthread.doublecoins"),
+					MineTTT.getPlugin().getMessage("mainthread.fullservers"), MineTTT.getPlugin().getMessage("mainthread.role"),
+					MineTTT.getPlugin().getMessage("mainthread.spectate"));
 			HologramOld siteHologram = new HologramOld(this.plugin,
-					Justification.LEFT, "minecade.com", "twitter.com/Minecade",
-					"fb.me/LegendaryNetwork");
+					Justification.LEFT, MineTTT.getPlugin().getMessage("mainthread.url"), MineTTT.getPlugin().getMessage("mainthread.twitter"),
+					MineTTT.getPlugin().getMessage("mainthread.facebook"));
 			HologramOld nuggetHologram = new HologramOld(this.plugin,
-					Justification.LEFT, ChatColor.GOLD + "Golden Nugget Info:",
-					"Earn gold nuggets in game by killing",
-					"  appropriate players.",
-					"Click on a gold nugget as a traitor",
-					"  to open the shop and buy", "  unique, powerful items.",
-					"Nuggets not used at the end of the",
-					"  game are turned into coins.");
+					Justification.LEFT, MineTTT.getPlugin().getMessage("mainthread.nugget1"), MineTTT.getPlugin().getMessage("mainthread.nugget2"),
+					MineTTT.getPlugin().getMessage("mainthread.nugget3"), MineTTT.getPlugin().getMessage("mainthread.nugget4"),
+					MineTTT.getPlugin().getMessage("mainthread.nugget5"), MineTTT.getPlugin().getMessage("mainthread.nugget6"),
+					MineTTT.getPlugin().getMessage("mainthread.nugget7"), MineTTT.getPlugin().getMessage("mainthread.nugget8"));
 
 			Location location = this.lobbyLocation.clone();
 			location.add(-1, 1.5, 7);
@@ -705,8 +689,7 @@ public class MainThread implements Runnable {
 
 		if (!this.plugin.teamHandler.initializeTeams()) {
 			endGame(true);
-			Bukkit.broadcastMessage(ChatColor.RED
-					+ "The game cannot start because either there are no longer enough players, or too few chose not to spectate.");
+			Bukkit.broadcastMessage(MineTTT.getPlugin().getMessage("mainthread.nostart"));
 			return;
 		}
 
@@ -723,20 +706,20 @@ public class MainThread implements Runnable {
 			String message;
 			switch (team) {
 			case INNOCENT:
-				message = FileManager.innocentColor + "You are an INNOCENT!";
+				message = FileManager.innocentColor + MineTTT.getPlugin().getMessage("mainthread.innocent");
 				player.sendMessage(message);
 				BarAPI.setMessage(p, message);
 				player.showKarma();
 				break;
 			case DETECTIVE:
-				message = FileManager.detectiveColor + "You are a DETECTIVE!";
+				message = FileManager.detectiveColor + MineTTT.getPlugin().getMessage("mainthread.detective");
 				player.sendMessage(message);
 				BarAPI.setMessage(p, message);
 				player.showKarma();
 				p.getInventory().setItem(8, new ItemStack(Material.COMPASS, 1));
 				break;
 			case TRAITOR:
-				message = FileManager.traitorColor + "You are a TRAITOR!";
+				message = FileManager.traitorColor + MineTTT.getPlugin().getMessage("mainthread.traitor");
 				player.sendMessage(message);
 				BarAPI.setMessage(p, message);
 				player.showKarma();
@@ -754,7 +737,7 @@ public class MainThread implements Runnable {
 			inventory.setItem(4, new ItemStack(Material.ARROW, 40));
 		}
 
-		this.server.broadcastMessage(ChatColor.GREEN + "The game has begun!");
+		this.server.broadcastMessage(MineTTT.getPlugin().getMessage("mainthread.begun"));
 		TTTPlayer.showAllGameScoreboards();
 		TTTPlayer.giveChatItemsToAll();
 

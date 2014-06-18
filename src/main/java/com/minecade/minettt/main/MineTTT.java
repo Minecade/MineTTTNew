@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -29,6 +31,8 @@ public class MineTTT extends JavaPlugin {
 	private final long tick = 5L;
 
 	private static MineTTT plugin;
+	
+	private ResourceBundle resourceBundle;
 
 	/**
 	 * Returns the plugin currently in use by the server.
@@ -73,8 +77,7 @@ public class MineTTT extends JavaPlugin {
 		this.thread.destroyHologram();
 		if (this.thread.getGameStatus() != GameState.OFF) {
 			this.thread.endGame(true);
-			Bukkit.broadcastMessage(ChatColor.RED
-					+ "The game has ended because MineTTT is disabling (usually due to a server reload or shutdown).");
+			Bukkit.broadcastMessage(MineTTT.getPlugin().getMessage("minettt.end"));
 		}
 		this.fileManager.savePlayers();
 		this.chestHandler.resetChests();
@@ -92,6 +95,17 @@ public class MineTTT extends JavaPlugin {
 		this.serverStatusThread.update(true);
 	}
 
+	@Override
+    public void onLoad() {
+        plugin = this;
+        // default config
+        saveDefaultConfig();
+        // server custom config should override this
+        getConfig().options().copyDefaults(false);
+        // i18n config
+        resourceBundle = ResourceBundle.getBundle("messages", new Locale(getConfig().getString("locale"), "en"));
+    }
+	
 	/**
 	 * On the enabling of the plugin, this registers all listeners, handlers,
 	 * managers, and threads.
@@ -99,7 +113,7 @@ public class MineTTT extends JavaPlugin {
 	@Override
 	public void onEnable() {
 		try {
-			plugin = this;
+			//plugin = this;
 			this.server = getServer();
 			this.manager = this.server.getPluginManager();
 			registerListeners();
@@ -149,7 +163,7 @@ public class MineTTT extends JavaPlugin {
 			TTTPlayer.showAllPreGameScoreboards();
 		} catch (Exception e) {
 			this.server
-					.broadcastMessage("The server has encountered an error and is restarting.");
+					.broadcastMessage(MineTTT.getPlugin().getMessage("minettt.error"));
 			String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss")
 					.format(Calendar.getInstance().getTime());
 			File file = new File(getDataFolder(), "crash" + timeStamp + ".log");
@@ -172,5 +186,12 @@ public class MineTTT extends JavaPlugin {
 		this.manager.registerEvents(this.playerListener, this);
 		this.manager.registerEvents(new WorldListener(), this);
 	}
+	
+	public String getMessage(String key) {
+        if (resourceBundle.containsKey(key)) {
+            return ChatColor.translateAlternateColorCodes('&', resourceBundle.getString(key));
+        }
+        return key;
+    }
 
 }

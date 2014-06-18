@@ -395,7 +395,7 @@ public class PlayerListener implements Listener {
 		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(player);
 		if (Tplayer.getTeam() == PlayerTeam.NONE
 				&& this.plugin.thread.isGameRunning()) {
-			player.sendMessage("You cannot use commands while spectating.");
+			player.sendMessage(MineTTT.getPlugin().getMessage("playerlistener.no-command"));
 			event.setCancelled(true);
 		}
 
@@ -450,11 +450,8 @@ public class PlayerListener implements Listener {
 				if ((damagerTeam != PlayerTeam.TRAITOR && playerTeam == PlayerTeam.TRAITOR)) {
 					Tplayer.addKarma();
 					giveNugget(recentDamager, PlayerTeam.TRAITOR);
-					recentDamager.sendMessage(ChatColor.GOLD.toString()
-							+ ChatColor.ITALIC
-							+ "You got 1 gold nugget for taking down a "
-							+ FileManager.traitorColor + playerTeam
-							+ ChatColor.RESET + "!");
+					recentDamager.sendMessage(String.format(MineTTT.getPlugin().getMessage("playerlistener.one-gold"), 
+				        FileManager.traitorColor + playerTeam.getName()));
 				}
 
 				if (damagerTeam == PlayerTeam.TRAITOR
@@ -467,10 +464,7 @@ public class PlayerListener implements Listener {
 						roleName = FileManager.detectiveColor
 								+ playerTeam.toString() + ChatColor.RESET;
 					}
-					recentDamager.sendMessage(ChatColor.GOLD.toString()
-							+ ChatColor.ITALIC
-							+ "You got 1 gold nugget for taking down a "
-							+ roleName + "!");
+					recentDamager.sendMessage(String.format(MineTTT.getPlugin().getMessage("playerlistener.one-gold"), roleName));
 					TrecentDamager.giveSpeedBoost(2, 5);
 				}
 
@@ -479,11 +473,11 @@ public class PlayerListener implements Listener {
 					TrecentDamager.loseKarma();
 				}
 			}
-			deathMessage = player.getName()
-					+ " was slain, and revealed to be a";
-			if (playerTeam == PlayerTeam.INNOCENT) {
-				deathMessage += "n";
-			}
+			deathMessage = String.format(MineTTT.getPlugin().getMessage("playerlistener.slain"), player.getName());
+			
+//			if (playerTeam == PlayerTeam.INNOCENT) {
+//				deathMessage += "n";
+//			}
 			ChatColor color = ChatColor.WHITE;
 			switch (playerTeam) {
 			case INNOCENT:
@@ -498,7 +492,7 @@ public class PlayerListener implements Listener {
 			default:
 				break;
 			}
-			deathMessage += " " + color + playerTeam + ".";
+			deathMessage += " " + color + playerTeam.getName() + ".";
 
 			event.setDeathMessage(deathMessage);
 
@@ -571,20 +565,18 @@ public class PlayerListener implements Listener {
 	@EventHandler
 	public void onPlayerLogin(PlayerLoginEvent event) {
 		if (this.plugin.thread.isOver()) {
-			event.disallow(Result.KICK_OTHER, "The server is restarting.");
+			event.disallow(Result.KICK_OTHER, MineTTT.getPlugin().getMessage("playerlistener.restarting"));
 			return;
 		}
 		UUID id = event.getPlayer().getUniqueId();
 		String name = event.getPlayer().getName();
 		TTTPlayer Tplayer = TTTPlayer.getTTTPlayer(name);
 		if (this.plugin.minecade.isPlayerBanned(id)) {
-			event.disallow(Result.KICK_BANNED,
-					"You have been banned from all Minecade servers.");
+			event.disallow(Result.KICK_BANNED, MineTTT.getPlugin().getMessage("playerlistener.banned"));
 			return;
 		}
 		if (TTTPlayer.isBanned(name)) {
-			event.disallow(Result.KICK_BANNED,
-					"Your karma dropped too low, you are banned for 5 minutes!");
+			event.disallow(Result.KICK_BANNED, MineTTT.getPlugin().getMessage("playerlistener.karma"));
 			return;
 		}
 		if (event.getResult() == Result.KICK_FULL

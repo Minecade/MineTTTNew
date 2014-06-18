@@ -90,24 +90,19 @@ public class TTTPlayer {
 	private static final OfflinePlayer butterCoinsLabel = Bukkit
 			.getOfflinePlayer(ChatColor.GOLD + "Coins");
 
-	public static final String trustLabel = "Proclaim your trust",
-			suspectLabel = "Express your suspicion",
-			claimLabel = "Call out a traitor";
+	public static final String trustLabel = MineTTT.getPlugin().getMessage("tttplayer.trust"),
+	        suspectLabel = MineTTT.getPlugin().getMessage("tttplayer.suspect"),
+	                claimLabel = MineTTT.getPlugin().getMessage("tttplayer.claim");
 
-	private static final String voteForAMap = "Vote for a map...";
-	private static final String spectateGame = "Spectate this game";
-	private static final String chooseDetectiveLabel = FileManager.detectiveColor
-			+ "Choose to be a Detective";
-	private static final String chooseInnocentLabel = FileManager.innocentColor
-			+ "Choose to be an Innocent";
-	private static final String chooseTraitorLabel = FileManager.traitorColor
-			+ "Choose to be a Traitor";
-	private static final String chooseRandomLabel = FileManager.spectatorColor
-			+ "Let the server choose for you";
+	private static final String voteForAMap = MineTTT.getPlugin().getMessage("tttplayer.votemap");
+	private static final String spectateGame = MineTTT.getPlugin().getMessage("tttplayer.spectate");
+	private static final String chooseDetectiveLabel = FileManager.detectiveColor + MineTTT.getPlugin().getMessage("tttplayer.detective");
+	private static final String chooseInnocentLabel = FileManager.innocentColor + MineTTT.getPlugin().getMessage("tttplayer.innocent");
+	private static final String chooseTraitorLabel = FileManager.traitorColor + MineTTT.getPlugin().getMessage("tttplayer.traitor");
+	private static final String chooseRandomLabel = FileManager.spectatorColor + MineTTT.getPlugin().getMessage("tttplayer.serverchoose");
 	private static final String playGame = "Play this game";
-	private static final String leaveLabel = ChatColor.DARK_PURPLE
-			+ "Leave the server";
-	private static final String statsLabel = ChatColor.GOLD + "Stats";
+	private static final String leaveLabel = MineTTT.getPlugin().getMessage("tttplayer.leave");
+	private static final String statsLabel = ChatColor.GOLD + MineTTT.getPlugin().getMessage("tttplayer.statstitle");
 
 	private static ItemStack trustItem, suspectItem, claimItem;
 
@@ -242,7 +237,7 @@ public class TTTPlayer {
 
 		if (team == PlayerTeam.NONE) {
 			if (receiverTeam == PlayerTeam.NONE) {
-				playerName = FileManager.spectatorColor + "<Spectator> "
+				playerName = FileManager.spectatorColor + MineTTT.getPlugin().getMessage("tttplayer.spectator")
 						+ playerName + ChatColor.RESET;
 				return rank + playerName;
 			}
@@ -375,7 +370,7 @@ public class TTTPlayer {
 		for (String key : plugin.thread.getLoadedArenaKeys()) {
 			ItemStack stack = new ItemStack(Material.DIAMOND, 1);
 			ItemMeta meta = stack.getItemMeta();
-			meta.setDisplayName("Vote for " + key);
+			meta.setDisplayName(String.format(MineTTT.getPlugin().getMessage("tttplayer.voteforitem"), key));
 			List<String> lore = plugin.thread.getArenaLore(key);
 			meta.setLore(lore);
 			stack.setItemMeta(meta);
@@ -566,19 +561,16 @@ public class TTTPlayer {
 					if (name != null) {
 						Player target = Tools.getTargetPlayer(player, 20);
 						if (target != null) {
-							switch (name) {
-							case trustLabel:
-								Tplayer.callOut(Action.TRUST, target);
-								return true;
-							case suspectLabel:
-								Tplayer.callOut(Action.SUSPISCION, target);
-								return true;
-							case claimLabel:
-								Tplayer.callOut(Action.CLAIM, target);
-								return true;
-							default:
-								break;
-							}
+						    if(name.equals(trustLabel)){
+						        Tplayer.callOut(Action.TRUST, target);
+						    }
+						    else if(name.equals(suspectLabel)){
+						        Tplayer.callOut(Action.SUSPISCION, target);
+                            }
+						    else if(name.equals(claimLabel)){
+						        Tplayer.callOut(Action.CLAIM, target);
+	                            
+                            }
 						}
 					}
 				}
@@ -696,10 +688,9 @@ public class TTTPlayer {
 			ChatColor color = ChatColor.AQUA;
 			if (need == 1) {
 				Bukkit.broadcastMessage(color
-						+ "1 more player must join before the game can start.");
+						+ MineTTT.getPlugin().getMessage("tttplayer.onejoin"));
 			} else if (need > 1) {
-				Bukkit.broadcastMessage(color.toString() + need
-						+ " more players must join before the game can start.");
+				Bukkit.broadcastMessage(color.toString() + need + " " + MineTTT.getPlugin().getMessage("tttplayer.join"));
 			}
 			giveLeaveItem(player);
 			Tplayer.giveStatsBook();
@@ -1119,14 +1110,13 @@ public class TTTPlayer {
 
 			switch (action) {
 			case TRUST:
-				message = myName + " trusts " + targetName + ".";
+				message = String.format(MineTTT.getPlugin().getMessage("tttplayer.trusts"), myName, targetName);
 				break;
 			case SUSPISCION:
-				message = myName + " suspects " + targetName + " of treachery.";
+				message = String.format(MineTTT.getPlugin().getMessage("tttplayer.suspects"), myName, targetName);
 				break;
 			case CLAIM:
-				message = myName + " claims that " + targetName
-						+ " is a traitor!";
+				message = String.format(MineTTT.getPlugin().getMessage("tttplayer.claimsthat"), myName, targetName);
 				break;
 			default:
 				message = "";
@@ -1216,7 +1206,7 @@ public class TTTPlayer {
 			return;
 		}
 		if (this.karma < karmaThreshold) {
-			p.kickPlayer("Your karma has dropped below 200! You've been banned!");
+			p.kickPlayer(MineTTT.getPlugin().getMessage("tttplayer.karmabanned"));
 			setKarma(500);
 			this.banDate = System.currentTimeMillis();
 			this.banLength = duration;
@@ -1259,8 +1249,7 @@ public class TTTPlayer {
 		}
 		plugin.minecade.addCoins(player.getUniqueId(), coins);
 		if (coins != 0) {
-			player.sendMessage(ChatColor.GOLD.toString() + ChatColor.ITALIC
-					+ "You earned " + coins + " coins!");
+			player.sendMessage(String.format(MineTTT.getPlugin().getMessage("tttplayer.earned"), coins));
 		}
 		loadMinecadeAccount();
 		refreshScoreboard();
@@ -1498,7 +1487,7 @@ public class TTTPlayer {
 			meta.setOwner(name);
 			meta.setDisplayName(display);
 			List<String> lore = new ArrayList<>();
-			lore.add("Click to teleport to " + display);
+			lore.add(MineTTT.getPlugin().getMessage("tttplayer.teleportto") + display);
 			meta.setLore(lore);
 
 			item.setItemMeta(meta);
@@ -1544,21 +1533,9 @@ public class TTTPlayer {
 		ItemStack item = new ItemStack(Material.WRITTEN_BOOK, 1);
 		BookMeta meta = (BookMeta) item.getItemMeta();
 		meta.setDisplayName(statsLabel);
-		String page1 = "Your Stats:\n";
-		page1 += "Karma: " + this.karma + "\n";
-		page1 += "Games played: " + this.gamesPlayed + "\n";
-		page1 += "\n";
-		page1 += "Innocent Kills:\n";
-		page1 += " Traitors: " + this.traitorKillsAsInnocent + "\n";
-		page1 += "\n";
-		page1 += "Detective Kills:\n";
-		page1 += " Traitors: " + this.killMap.get(PlayerTeam.TRAITOR) + "\n";
-		page1 += "\n";
-		page1 += "Traitor Kills:\n";
-		page1 += " Innocents: " + this.killMap.get(PlayerTeam.INNOCENT) + "\n";
-		page1 += " Detectives: " + this.killMap.get(PlayerTeam.DETECTIVE)
-				+ "\n";
-		meta.addPage(page1);
+		meta.addPage(String.format(MineTTT.getPlugin().getMessage("tttplayer.stats"),
+                this.karma, this.gamesPlayed, this.traitorKillsAsInnocent, this.killMap.get(PlayerTeam.TRAITOR), 
+                this.killMap.get(PlayerTeam.INNOCENT), this.killMap.get(PlayerTeam.DETECTIVE)));
 		item.setItemMeta(meta);
 
 		Inventory inventory = p.getInventory();
@@ -1606,19 +1583,16 @@ public class TTTPlayer {
 					.equals(shopItem.getDisplayName())) {
 				int cost = shopItem.getCost();
 				if (!inventory.containsAtLeast(PlayerListener.nugget, cost)) {
-					p.sendMessage(ChatColor.RED
-							+ "You cannot afford this item!");
+					p.sendMessage(MineTTT.getPlugin().getMessage("tttplayer.cantafford"));
 					openShop();
 					return true;
 				}
 				if (shopItem.alreadyHas(inventory)) {
-					p.sendMessage(ChatColor.RED
-							+ "You can only own one of these items!");
+					p.sendMessage(MineTTT.getPlugin().getMessage("tttplayer.ownone"));
 					openShop();
 					return true;
 				}
-				p.sendMessage(ChatColor.GREEN + "You've purchased "
-						+ ChatColor.RESET + shopItem.getDisplayName() + "!");
+				p.sendMessage(String.format(MineTTT.getPlugin().getMessage("tttplayer.purchased"), shopItem.getDisplayName()));
 				spendNuggets(cost);
 				SpecialItem specialItem = shopItem;
 				this.ownedItems.add(specialItem);
@@ -1632,19 +1606,16 @@ public class TTTPlayer {
 					.equals(shopItem.getDisplayName())) {
 				int cost = shopItem.getCost();
 				if (!inventory.containsAtLeast(PlayerListener.nugget, cost)) {
-					p.sendMessage(ChatColor.RED
-							+ "You cannot afford this item!");
+					p.sendMessage(MineTTT.getPlugin().getMessage("tttplayer.cantafford"));
 					openShop();
 					return true;
 				}
 				if (shopItem.alreadyHas(inventory)) {
-					p.sendMessage(ChatColor.RED
-							+ "You can only own one of these items!");
+					p.sendMessage(MineTTT.getPlugin().getMessage("tttplayer.ownone"));
 					openShop();
 					return true;
 				}
-				p.sendMessage(ChatColor.GREEN + "You've purchased "
-						+ ChatColor.RESET + shopItem.getDisplayName() + "!");
+				p.sendMessage(String.format(MineTTT.getPlugin().getMessage("tttplayer.purchased"), shopItem.getDisplayName()));
 				spendNuggets(cost);
 				SpecialItem specialItem = shopItem;
 				this.ownedItems.add(specialItem);
@@ -1775,7 +1746,7 @@ public class TTTPlayer {
 			ItemMeta voteMeta = vote.getItemMeta();
 			voteMeta.setDisplayName(voteForAMap);
 			List<String> lore = new ArrayList<>();
-			lore.add("You cannot choose to spectate or leave after you've voted.");
+			lore.add(MineTTT.getPlugin().getMessage("tttplayer.nospectate"));
 			voteMeta.setLore(lore);
 			vote.setItemMeta(voteMeta);
 			inventory.setItem(0, vote);
@@ -1893,9 +1864,7 @@ public class TTTPlayer {
 	public void loseKarma() {
 		int k = (int) (random.nextDouble() * 60 + 220);
 		addKarma(-k);
-		sendMessage("You lost "
-				+ k
-				+ " karma for killing someone you shouldn't! Don't get below 200!");
+		sendMessage(String.format(MineTTT.getPlugin().getMessage("tttplayer.karmalost"), k));
 	}
 
 	/**
@@ -1925,14 +1894,14 @@ public class TTTPlayer {
 
 		DamageCause[] causes = { DamageCause.CONTACT };
 		SpecialItem theBackstaber = new SpecialItem(Material.DIAMOND_SWORD,
-				"The Teststabber", 1, Power.ONE_HIT_KILL_FROM_BEHIND, causes,
-				1, 0, "Instantly kills someone if used from behind.",
-				"Destroyed after 1 use.");
+		        MineTTT.getPlugin().getMessage("tttplayer.testabber"), 1, Power.ONE_HIT_KILL_FROM_BEHIND, causes,
+				1, 0, MineTTT.getPlugin().getMessage("tttplayer.testabber1"),
+				MineTTT.getPlugin().getMessage("tttplayer.testabber2"));
 		detectiveItems.add(theBackstaber.getItemInShop(inventory));
 		this.detectiveShop.add(theBackstaber);
 
 		Inventory shopInventory = Bukkit.getServer().createInventory(null,
-				getMultipleOfNine(detectiveItems.size()), "Detective shop");
+				getMultipleOfNine(detectiveItems.size()), MineTTT.getPlugin().getMessage("tttplayer.detectiveshop"));
 		shopInventory.addItem(detectiveItems
 				.toArray(new ItemStack[detectiveItems.size()]));
 
@@ -1978,37 +1947,37 @@ public class TTTPlayer {
 
 		DamageCause[] causes = { DamageCause.CONTACT };
 		SpecialItem theBackstaber = new SpecialItem(Material.DIAMOND_SWORD,
-				"The Backstabber", 1, Power.ONE_HIT_KILL_FROM_BEHIND, causes,
-				1, 0, "Instantly kills someone if used from behind.",
-				"Destroyed after 1 use.");
+		        MineTTT.getPlugin().getMessage("tttplayer.backstaber"), 1, Power.ONE_HIT_KILL_FROM_BEHIND, causes,
+				1, 0, MineTTT.getPlugin().getMessage("tttplayer.backstaber1"),
+				MineTTT.getPlugin().getMessage("tttplayer.backstaber2"));
 		traitorItems.add(theBackstaber.getItemInShop(inventory));
 		this.traitorShop.add(theBackstaber);
 
 		causes = new DamageCause[] { DamageCause.PROJECTILE };
-		SpecialItem theBow = new SpecialItem(Material.BOW, "The Huntsman", 1,
+		SpecialItem theBow = new SpecialItem(Material.BOW, MineTTT.getPlugin().getMessage("tttplayer.bow"), 1,
 				Power.ONE_HIT_KILL, causes, 1, 0,
-				"Fires an arrow which instantly kills its target.",
-				"Destroyed after 1 use.");
+				MineTTT.getPlugin().getMessage("tttplayer.bow1"),
+				MineTTT.getPlugin().getMessage("tttplayer.bow2"));
 		traitorItems.add(theBow.getItemInShop(inventory));
 		this.traitorShop.add(theBow);
 
 		causes = new DamageCause[] {};
 		SpecialItem claymore = new SpecialItem(
 				Material.TNT,
-				"Claymore",
+				MineTTT.getPlugin().getMessage("tttplayer.claymore"),
 				1,
 				Power.MINE,
 				causes,
 				1,
 				0,
-				"Plants a mine that explodes when someone steps on it.",
-				"Only you and other traitors will see the Claymore once placed.",
-				"Arms after 5 seconds.");
+				MineTTT.getPlugin().getMessage("tttplayer.claymore1"),
+				MineTTT.getPlugin().getMessage("tttplayer.claymore2"),
+				MineTTT.getPlugin().getMessage("tttplayer.claymore3"));
 		traitorItems.add(claymore.getItemInShop(inventory));
 		this.traitorShop.add(claymore);
 
 		Inventory shopInventory = Bukkit.getServer().createInventory(null,
-				getMultipleOfNine(traitorItems.size()), "Traitor shop");
+				getMultipleOfNine(traitorItems.size()), MineTTT.getPlugin().getMessage("tttplayer.traitorshop"));
 		shopInventory.addItem(traitorItems.toArray(new ItemStack[traitorItems
 				.size()]));
 
@@ -2273,9 +2242,8 @@ public class TTTPlayer {
 					"dummy");
 		}
 
-		if (!objective.getDisplayName().equals(
-				ChatColor.GREEN + "Living Players")) {
-			objective.setDisplayName(ChatColor.GREEN + "Living Players");
+		if (!objective.getDisplayName().equals(MineTTT.getPlugin().getMessage("tttplayer.livingplayers"))) {
+			objective.setDisplayName(MineTTT.getPlugin().getMessage("tttplayer.livingplayers"));
 		}
 
 		if (objective.getDisplaySlot() != DisplaySlot.SIDEBAR) {
@@ -2335,10 +2303,8 @@ public class TTTPlayer {
 		}
 
 		if (!objective.getDisplayName().equals(
-				ChatColor.GOLD + ChatColor.BOLD.toString() + this.playerName
-						+ "'s Stats")) {
-			objective.setDisplayName(ChatColor.GOLD + ChatColor.BOLD.toString()
-					+ this.playerName + "'s Stats");
+		        MineTTT.getPlugin().getMessage(String.format(MineTTT.getPlugin().getMessage("tttplayer.playerstats"), this.playerName)))) {
+			objective.setDisplayName(String.format(MineTTT.getPlugin().getMessage("tttplayer.playerstats"), this.playerName));
 		}
 
 		if (objective.getDisplaySlot() != DisplaySlot.SIDEBAR) {
@@ -2387,8 +2353,8 @@ public class TTTPlayer {
 			objective = this.scoreboard.registerNewObjective("votes", "dummy");
 		}
 
-		if (!objective.getDisplayName().equals(ChatColor.GOLD + "Map Vote")) {
-			objective.setDisplayName(ChatColor.GOLD + "Map Vote");
+		if (!objective.getDisplayName().equals(MineTTT.getPlugin().getMessage("tttplayer.mapvote"))) {
+			objective.setDisplayName(MineTTT.getPlugin().getMessage("tttplayer.mapvote"));
 		}
 
 		if (objective.getDisplaySlot() != DisplaySlot.SIDEBAR) {
@@ -2543,7 +2509,7 @@ public class TTTPlayer {
 					.createInventory(
 							null,
 							getMultipleOfNine(plugin.thread.getArenaLocations()
-									.size()), "Which map will you vote for?");
+									.size()), MineTTT.getPlugin().getMessage("tttplayer.votefor"));
 			ArrayList<ItemStack> votingItems = getVotingItems();
 			for (int i = 0; i < votingItems.size(); i++) {
 				voteInventory.setItem(i, votingItems.get(i));
@@ -2569,8 +2535,7 @@ public class TTTPlayer {
 			Tools.clearInventory(player);
 			player.closeInventory();
 			player.updateInventory();
-			player.sendMessage(ChatColor.GREEN + "You have voted for the "
-					+ key + ChatColor.GREEN + " map.");
+			player.sendMessage(String.format(MineTTT.getPlugin().getMessage("tttplayer.vote"), key));
 			installVoteTools();
 			return true;
 		}

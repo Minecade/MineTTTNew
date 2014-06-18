@@ -16,7 +16,7 @@ public class Bungee {
 	}
 
 	public static void disconnect(Player player) {
-		player.sendMessage("[c]Connecting to lobby..");
+		player.sendMessage(MineTTT.getPlugin().getMessage("bungee.connecting"));
 		Bungee.send(player, "Connect", "lobby");
 	}
 

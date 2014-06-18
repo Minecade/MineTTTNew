@@ -1,0 +1,30 @@
+ID: 1
+locale: es
+Properties:
+  minimumNumberOfPlayers: 5
+  preparationTime: 90000
+  detectiveFindBodyRange: 5.0
+  detectiveCompassDuration: 5000
+  precentTraitors: 0.25
+  percentDetectives: 0.125
+  karmaThreshold: 200
+  banDuration: 300000
+  chatItemCooldown: 10000
+Colors:
+  traitor: RED
+  innocent: WHITE
+  detective: AQUA
+  spectator: GRAY
+Minecade_SQL:
+  hostname: localhost
+  port: 3306
+  username: root
+  password: root
+  database: minecade
+Player_SQL:
+  use: true
+  hostname: localhost
+  port: 3306
+  username: root
+  password: root
+  database: minettt

@@ -38,7 +38,7 @@ public class CommandHandler {
 	 */
 	private void addCoins(Player player, String[] args) {
 		if (args.length != 2) {
-			sendMessage(player, "Usage: /addcoins <player> <numberOfCoins>");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.coins"));
 			return;
 		}
 
@@ -46,15 +46,14 @@ public class CommandHandler {
 		try {
 			i = Long.parseLong(args[1]);
 		} catch (NumberFormatException e) {
-			sendMessage(player, "That wasn't a number...");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.coinsnumber"));
 			return;
 		}
 		OfflinePlayer oPlayer = Bukkit.getOfflinePlayer(args[0]);
 		if (this.plugin.minecade.addCoins(oPlayer.getUniqueId(), i)) {
-			sendMessage(player, i + " coins have been added to " + args[0]
-					+ "'s account.");
+			sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.coinsadded"), i, args[0])); 
 		} else {
-			sendMessage(player, "There was an error.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.coinserror"));
 		}
 		update(args[0], null);
 	}
@@ -69,7 +68,7 @@ public class CommandHandler {
 	 */
 	private void forceEnd(Player player, String[] args) {
 		this.plugin.thread.endGame(true);
-		Bukkit.broadcastMessage(ChatColor.RED + "An admin has ended the game.");
+		Bukkit.broadcastMessage(MineTTT.getPlugin().getMessage("commandhandler.end"));
 	}
 
 	/**
@@ -104,8 +103,7 @@ public class CommandHandler {
 			// Hologram l2 = new Hologram(this.plugin, "LINE 2");
 			// l2.show(loc.clone().add(1, -1.5, 0), 300L, null);
 		}
-		sendMessage(player, "The status of MineTTT is: "
-				+ this.plugin.thread.getGameStatus().toString());
+		sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.status"), this.plugin.thread.getGameStatus().getName()));
 	}
 
 	/**
@@ -131,8 +129,7 @@ public class CommandHandler {
 		if (sender instanceof Player) {
 			player = (Player) sender;
 			if (!player.hasPermission("minettt." + name)) {
-				sendMessage(player, "You do not have permission to use the "
-						+ name + " command.");
+				sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.handle"), name));
 				return true;
 			}
 		}
@@ -211,8 +208,8 @@ public class CommandHandler {
 	 *            The arguments of the command.
 	 */
 	private void setArenaLocation(Player player, String[] args) {
-		String commandLineUsage = "Command line usage: setarenalocation <arenaname> <worldname> <x> <y> <z>";
-		String playerUsage = "Usage: setarenalocation <arenaname> [worldname] [x] [y] [z]";
+		String commandLineUsage = MineTTT.getPlugin().getMessage("commandhandler.arena");
+		String playerUsage = MineTTT.getPlugin().getMessage("commandhandler.arenaplayer");
 
 		if (args.length == 1) {
 			if (player == null) {
@@ -222,7 +219,7 @@ public class CommandHandler {
 
 			Location location = player.getLocation();
 			this.plugin.thread.setArenaLocation(args[0], location);
-			sendMessage(player, "Arena location set to your current location.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.arenaplayerlocation"));
 			return;
 		}
 
@@ -239,8 +236,7 @@ public class CommandHandler {
 
 			Location location = new Location(world, x, y, z);
 			this.plugin.thread.setArenaLocation(args[0], location);
-			sendMessage(player,
-					"Arena location set to those coordinates in current world.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.arenalocation"));
 			return;
 		}
 
@@ -248,7 +244,7 @@ public class CommandHandler {
 			String worldname = args[1];
 			World world = Bukkit.getWorld(worldname);
 			if (world == null) {
-				sendMessage(player, "That world is not recognized.");
+				sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.arenaworld"));
 			}
 
 			double x = Double.parseDouble(args[2]);
@@ -257,8 +253,7 @@ public class CommandHandler {
 
 			Location location = new Location(world, x, y, z);
 			this.plugin.thread.setArenaLocation(args[0], location);
-			sendMessage(player,
-					"Arena location set to specified coordinates and world.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.arenaset"));
 			return;
 		}
 
@@ -278,8 +273,8 @@ public class CommandHandler {
 	 *            The arguments of the command.
 	 */
 	private void setLobbyLocation(Player player, String[] args) {
-		String commandLineUsage = "Command line usage: setlobbylocation <worldname> <x> <y> <z>";
-		String playerUsage = "Usage: setlobbylocation [worldname] [x] [y] [z]";
+		String commandLineUsage = MineTTT.getPlugin().getMessage("commandhandler.lobbylocationcommand");
+		String playerUsage = MineTTT.getPlugin().getMessage("commandhandler.lobbylocationplayer");
 
 		if (args.length == 0) {
 			if (player == null) {
@@ -289,7 +284,7 @@ public class CommandHandler {
 
 			Location location = player.getLocation();
 			this.plugin.thread.setLobbyLocation(location);
-			sendMessage(player, "Lobby location set to your current location.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.lobbylocationcurrent"));
 			return;
 		}
 
@@ -306,8 +301,7 @@ public class CommandHandler {
 
 			Location location = new Location(world, x, y, z);
 			this.plugin.thread.setLobbyLocation(location);
-			sendMessage(player,
-					"Lobby location set to those coordinates in current world.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.lobbylocationcurrentworld"));
 			return;
 		}
 
@@ -315,7 +309,7 @@ public class CommandHandler {
 			String worldname = args[0];
 			World world = Bukkit.getWorld(worldname);
 			if (world == null) {
-				sendMessage(player, "That world is not recognized.");
+				sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.lobbylocationworld"));
 			}
 
 			double x = Double.parseDouble(args[1]);
@@ -324,8 +318,7 @@ public class CommandHandler {
 
 			Location location = new Location(world, x, y, z);
 			this.plugin.thread.setLobbyLocation(location);
-			sendMessage(player,
-					"Lobby location set to specified coordinates and world.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.lobbylocationset"));
 			return;
 		}
 
@@ -338,7 +331,7 @@ public class CommandHandler {
 
 	private void setRank(Player player, String[] args) {
 		if (args.length == 0 || args.length > 2) {
-			sendMessage(player, "Usage: /set rank <player> <rank>");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.rank"));
 			return;
 		}
 
@@ -346,15 +339,15 @@ public class CommandHandler {
 
 		Rank rank = Rank.getRank(args[1]);
 		if (rank == null) {
-			sendMessage(player, "That is not a valid rank.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.rankinvalid"));
 			return;
 		}
 
 		Tplayer.setRank(rank);
 		if (rank == Rank.NONE) {
-			sendMessage(player, args[0] + " was cleared of all ranks.");
+			sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.rankcleared"), args[0]));
 		} else {
-			sendMessage(player, args[0] + " was set to rank: " + rank);
+			sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.rankset"), args[0], rank));
 		}
 
 		update(args[0], null);
@@ -401,49 +394,45 @@ public class CommandHandler {
 			loc = this.plugin.thread.getLobbyLocation();
 			if (args.length == 0) {
 				if (player == null) {
-					sendMessage(player, "Command line usage: gotolobby"
-							+ location + " <player1> [player2] [player3] ...");
+					sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.teleporttogoto"), location));
 					return;
 				}
 				player.teleport(loc);
-				sendMessage(player, "Teleported you to the lobby.");
+				sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.teleporttolobbyplayer"));
 				return;
 			}
 
 			if (players.isEmpty()) {
-				sendMessage(player,
-						"None of the names given are online players.");
+				sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.teleporttonames"));
 				return;
 			}
 
-			sendMessage(player, "Teleported players to the lobby: "
-					+ playerlist);
+			sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.teleporttolobby"), playerlist));
+			
 		} else {
 			loc = this.plugin.thread.getArenaLocation(location);
 			if (loc == null) {
-				sendMessage(player, "That destination doesn't exist!");
+				sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.teleporttodestination"));
 				return;
 			}
 		}
 
 		if (args.length == 1) {
 			if (player == null) {
-				sendMessage(player, "Command line usage: goto" + location
-						+ " <player1> [player2] [player3] ...");
+				sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.teleportto"), location));
 				return;
 			}
 			player.teleport(loc);
-			sendMessage(player, "Teleported you to " + location + " Arena.");
+			sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.teleporttoarena"), location));
 			return;
 		}
 
 		if (players.isEmpty()) {
-			sendMessage(player, "None of the names given are online players.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.teleporttoonline"));
 			return;
 		}
 
-		sendMessage(player, "Teleported players to " + location + ": "
-				+ playerlist);
+		sendMessage(player, String.format(MineTTT.getPlugin().getMessage("commandhandler.teleporttoplayers"), location, playerlist));
 	}
 
 	/**
@@ -456,7 +445,7 @@ public class CommandHandler {
 	 */
 	private void teleportToArena(Player player, String[] args) {
 		if (args.length == 0) {
-			sendMessage(player, "You must specific which arena.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.teleporttowich"));
 			return;
 		}
 		teleportTo(player, args, args[0]);
@@ -485,7 +474,7 @@ public class CommandHandler {
 	 */
 	private void update(Player player, String[] args) {
 		if (player == null) {
-			sendMessage(player, "This command cannot be used from the console.");
+			sendMessage(player, MineTTT.getPlugin().getMessage("commandhandler.update"));
 			return;
 		}
 		update(player.getName(), args);

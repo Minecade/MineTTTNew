@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.minecade.minettt.listeners.PlayerListener;
+import com.minecade.minettt.main.MineTTT;
 
 public class SpecialItem {
 
@@ -135,11 +136,11 @@ public class SpecialItem {
 
 		List<String> itemLore = new ArrayList<>();
 		itemLore.addAll(this.lore);
-		String string = "Costs " + this.cost + " Golden Nuggets";
+		String string = String.format(MineTTT.getPlugin().getMessage("specialitem.cost"), this.cost); 
 		String color = ChatColor.RED.toString();
 		if (alreadyHas(inventory)) {
 			string += ChatColor.RESET + color
-					+ " (You may only have 1 at a time)";
+					+ MineTTT.getPlugin().getMessage("specialitem.item");
 			color = color.toString() + ChatColor.STRIKETHROUGH;
 		} else if (inventory.containsAtLeast(PlayerListener.nugget, this.cost)) {
 			color = ChatColor.GREEN.toString();
