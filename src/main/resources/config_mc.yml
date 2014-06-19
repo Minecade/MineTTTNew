@@ -1,4 +1,5 @@
 ID: 1
+locale: sk
 Properties:
   minimumNumberOfPlayers: 5
   preparationTime: 90000

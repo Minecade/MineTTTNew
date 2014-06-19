@@ -103,7 +103,7 @@ public class MineTTT extends JavaPlugin {
         // server custom config should override this
         getConfig().options().copyDefaults(false);
         // i18n config
-        resourceBundle = ResourceBundle.getBundle("messages", new Locale(getConfig().getString("locale"), "en"));
+        resourceBundle = ResourceBundle.getBundle("messages", new Locale(getConfig().getString("locale"), "sk"));
     }
 	
 	/**
